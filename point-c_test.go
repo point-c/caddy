@@ -10,6 +10,7 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/google/uuid"
 	pointc "github.com/point-c/caddy"
+	test_caddy "github.com/point-c/test-caddy"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -69,7 +70,7 @@ func TestPointc_Provision(t *testing.T) {
 	t.Run("load network with no networks", func(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
-		testNet := NewTestNet(t)
+		testNet := test_caddy.NewTestNetwork(t)
 		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet.Id()+`"}]}`))
 		require.NoError(t, err)
 	})
@@ -77,7 +78,7 @@ func TestPointc_Provision(t *testing.T) {
 	t.Run("load network with one network", func(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
-		testNet := NewTestNet(t)
+		testNet := test_caddy.NewTestNetwork(t)
 		testNet.StartFn = func(fn pointc.RegisterFunc) error {
 			return fn("test1", nil)
 		}
@@ -88,11 +89,11 @@ func TestPointc_Provision(t *testing.T) {
 	t.Run("load network with two networks", func(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
-		testNet1 := NewTestNet(t)
+		testNet1 := test_caddy.NewTestNetwork(t)
 		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
 			return fn("test1", nil)
 		}
-		testNet2 := NewTestNet(t)
+		testNet2 := test_caddy.NewTestNetwork(t)
 		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
 			return fn("test2", nil)
 		}
@@ -103,17 +104,17 @@ func TestPointc_Provision(t *testing.T) {
 	t.Run("load network with two networks and two net ops, failing on netops provision", func(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
-		testNet1 := NewTestNet(t)
+		testNet1 := test_caddy.NewTestNetwork(t)
 		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
 			return fn("test1", nil)
 		}
-		testNet2 := NewTestNet(t)
+		testNet2 := test_caddy.NewTestNetwork(t)
 		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
 			return fn("test2", nil)
 		}
-		testOp1, testOp2 := NewTestNetOp(t), NewTestNetOp(t)
+		testOp1, testOp2 := test_caddy.NewTestNetOp(t), test_caddy.NewTestNetOp(t)
 		expErr := errors.New("json unmarshal fail " + uuid.NewString())
-		testOp2.unmarshalJSON = func([]byte) error { return expErr }
+		testOp2.UnmarshalJSONFn = func([]byte) error { return expErr }
 		caddy.RegisterModule(testOp1)
 		caddy.RegisterModule(testOp2)
 		_, err := ctx.LoadModuleByID("point-c", caddyconfig.JSON(map[string]any{
@@ -132,15 +133,15 @@ func TestPointc_Provision(t *testing.T) {
 	t.Run("load network with two networks and two net ops", func(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
-		testNet1 := NewTestNet(t)
+		testNet1 := test_caddy.NewTestNetwork(t)
 		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
 			return fn("test1", nil)
 		}
-		testNet2 := NewTestNet(t)
+		testNet2 := test_caddy.NewTestNetwork(t)
 		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
 			return fn("test2", nil)
 		}
-		testOp1, testOp2 := NewTestNetOp(t), NewTestNetOp(t)
+		testOp1, testOp2 := test_caddy.NewTestNetOp(t), test_caddy.NewTestNetOp(t)
 		caddy.RegisterModule(testOp1)
 		caddy.RegisterModule(testOp2)
 		_, err := ctx.LoadModuleByID("point-c", caddyconfig.JSON(map[string]any{
@@ -159,11 +160,11 @@ func TestPointc_Provision(t *testing.T) {
 	t.Run("load network fail with name collision", func(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
-		testNet1 := NewTestNet(t)
+		testNet1 := test_caddy.NewTestNetwork(t)
 		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
 			return fn("test1", nil)
 		}
-		testNet2 := NewTestNet(t)
+		testNet2 := test_caddy.NewTestNetwork(t)
 		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
 			return fn("test1", nil)
 		}
@@ -180,16 +181,16 @@ func TestPointc_Provision(t *testing.T) {
 	t.Run("load network fails", func(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
-		testNet := NewTestNet(t)
-		testNet.UnmarshalErr = errors.New("test")
+		testNet := test_caddy.NewTestNetwork(t)
+		testNet.UnmarshalJSONFn = func([]byte) error { return errors.New("test") }
 		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet.Id()+`"}]}`))
 		require.Error(t, err)
 	})
 }
 
 func TestPointc_UnmarshalCaddyfile(t *testing.T) {
-	testNet := NewTestNet(t)
-	testOp := NewTestNetOp(t)
+	testNet := test_caddy.NewTestNetwork(t)
+	testOp := test_caddy.NewTestNetOp(t)
 	caddy.RegisterModule(testOp)
 
 	tests := []struct {
@@ -327,121 +328,4 @@ point-c {
 		_, err := ctx.LoadModuleByID("point-c", b)
 		require.NoError(t, err)
 	})
-}
-
-type TestNetOp struct {
-	t                  *testing.T
-	startFn            func(pointc.NetLookup) error
-	stopFn             func() error
-	unmarshalCaddyfile func(*caddyfile.Dispenser) error
-	unmarshalJSON      func(b []byte) error
-	id                 uuid.UUID
-}
-
-func (t *TestNetOp) CaddyModule() caddy.ModuleInfo {
-	t.t.Helper()
-	return caddy.ModuleInfo{
-		ID:  caddy.ModuleID("point-c.op." + t.id.String()),
-		New: func() caddy.Module { t.t.Helper(); return t },
-	}
-}
-
-func NewTestNetOp(t *testing.T) *TestNetOp {
-	t.Helper()
-	return &TestNetOp{
-		t:  t,
-		id: uuid.New(),
-	}
-}
-
-func (t *TestNetOp) Id() string { t.t.Helper(); return t.id.String() }
-
-func (t *TestNetOp) Start(l pointc.NetLookup) error {
-	t.t.Helper()
-	if t.startFn != nil {
-		return t.startFn(l)
-	}
-	return nil
-}
-
-func (t *TestNetOp) Stop() error {
-	t.t.Helper()
-	if t.stopFn != nil {
-		return t.stopFn()
-	}
-	return nil
-}
-
-func (t *TestNetOp) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
-	t.t.Helper()
-	if t.unmarshalCaddyfile != nil {
-		return t.unmarshalCaddyfile(d)
-	}
-	return nil
-}
-
-func (t *TestNetOp) UnmarshalJSON(b []byte) error {
-	t.t.Helper()
-	if t.unmarshalJSON != nil {
-		return t.unmarshalJSON(b)
-	}
-	return nil
-}
-
-func (t *TestNetwork) CaddyModule() caddy.ModuleInfo {
-	t.t.Helper()
-	return caddy.ModuleInfo{
-		ID:  t.ID(),
-		New: func() caddy.Module { t.t.Helper(); return t },
-	}
-}
-
-func (t *TestNetwork) ID() caddy.ModuleID {
-	t.t.Helper()
-	return caddy.ModuleID("point-c.net.test-" + t.id.String())
-}
-
-func (t *TestNetwork) Id() string { return t.id.String() }
-
-type TestNetwork struct {
-	t                     testing.TB
-	id                    uuid.UUID
-	UnmarshalCaddyfileErr error                           `json:"-"`
-	UnmarshalErr          error                           `json:"-"`
-	StartFn               func(pointc.RegisterFunc) error `json:"-"`
-	StopFn                func() error                    `json:"-"`
-}
-
-func (t *TestNetwork) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
-	t.t.Helper()
-	return t.UnmarshalCaddyfileErr
-}
-
-func (t *TestNetwork) UnmarshalJSON([]byte) error {
-	t.t.Helper()
-	return t.UnmarshalErr
-}
-
-func NewTestNet(t testing.TB) *TestNetwork {
-	t.Helper()
-	tn := &TestNetwork{
-		t:  t,
-		id: uuid.New(),
-	}
-	caddy.RegisterModule(tn)
-	return tn
-}
-
-func (t *TestNetwork) Stop() error {
-	if t.StopFn != nil {
-		return t.StopFn()
-	}
-	return nil
-}
-
-func (t *TestNetwork) Start(fn pointc.RegisterFunc) error {
-	if t.StartFn != nil {
-		return t.StartFn(fn)
-	}
-	return nil
 }

@@ -1,6 +1,7 @@
-package configvalues
+package configvalues_test
 
 import (
+	"github.com/point-c/caddy/pkg/configvalues"
 	"github.com/stretchr/testify/require"
 	"net"
 	"testing"
@@ -8,7 +9,7 @@ import (
 
 func TestPortPairValue_ToCaddyAddr(t *testing.T) {
 	t.Run("udp", func(t *testing.T) {
-		addr := (&PortPairValue{
+		addr := (&configvalues.PortPairValue{
 			Src:   1,
 			Dst:   2,
 			IsUDP: true,
@@ -18,7 +19,7 @@ func TestPortPairValue_ToCaddyAddr(t *testing.T) {
 		require.Equal(t, "", addr.Host)
 	})
 	t.Run("udp host", func(t *testing.T) {
-		addr := (&PortPairValue{
+		addr := (&configvalues.PortPairValue{
 			Src:   1,
 			Dst:   2,
 			IsUDP: true,
@@ -29,7 +30,7 @@ func TestPortPairValue_ToCaddyAddr(t *testing.T) {
 		require.Equal(t, "1.2.3.4", addr.Host)
 	})
 	t.Run("tcp", func(t *testing.T) {
-		addr := (&PortPairValue{
+		addr := (&configvalues.PortPairValue{
 			Src: 1,
 			Dst: 2,
 		}).ToCaddyAddr()
@@ -38,7 +39,7 @@ func TestPortPairValue_ToCaddyAddr(t *testing.T) {
 		require.Equal(t, "", addr.Host)
 	})
 	t.Run("tcp host", func(t *testing.T) {
-		addr := (&PortPairValue{
+		addr := (&configvalues.PortPairValue{
 			Src:  1,
 			Dst:  2,
 			Host: net.IPv4(1, 2, 3, 4),

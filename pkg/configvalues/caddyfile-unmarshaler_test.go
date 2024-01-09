@@ -1,9 +1,10 @@
-package configvalues
+package configvalues_test
 
 import (
 	"errors"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
+	"github.com/point-c/caddy/pkg/configvalues"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -35,7 +36,7 @@ func (testEM) UnmarshalCaddyfile(*caddyfile.Dispenser) error { return errors.New
 
 func TestUnmarshaler(t *testing.T) {
 	const name = "test"
-	fn := CaddyfileUnmarshaler[testCm[testM], *testCm[testM]](name)
+	fn := configvalues.CaddyfileUnmarshaler[testCm[testM], *testCm[testM]](name)
 
 	t.Run("unmarshal one", func(t *testing.T) {
 		_, err := fn(caddyfile.NewTestDispenser(``), nil)
@@ -66,14 +67,14 @@ func TestUnmarshaler(t *testing.T) {
 	})
 
 	t.Run("bad caddy unmarshalling", func(t *testing.T) {
-		fn := CaddyfileUnmarshaler[testCm[testEM], *testCm[testEM]]("")
+		fn := configvalues.CaddyfileUnmarshaler[testCm[testEM], *testCm[testEM]]("")
 		v, err := fn(nil, nil)
 		require.Error(t, err)
 		require.Exactly(t, v, nil)
 	})
 
 	t.Run("bad json unmarshalling", func(t *testing.T) {
-		fn := CaddyfileUnmarshaler[testECm, *testECm]("")
+		fn := configvalues.CaddyfileUnmarshaler[testECm, *testECm]("")
 		v, err := fn(nil, httpcaddyfile.App{})
 		require.Error(t, err)
 		require.Exactly(t, v, nil)
