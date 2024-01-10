@@ -10,7 +10,7 @@ import (
 var _ pointc.Net = (*TestNet)(nil)
 
 type TestNet struct {
-	T              testing.TB
+	t              testing.TB
 	ListenFn       func(*net.TCPAddr) (net.Listener, error)
 	ListenPacketFn func(*net.UDPAddr) (net.PacketConn, error)
 	DialerFn       func(net.IP, uint16) pointc.Dialer
@@ -19,11 +19,11 @@ type TestNet struct {
 
 func NewTestNet(t testing.TB) *TestNet {
 	t.Helper()
-	return &TestNet{T: t}
+	return &TestNet{t: t}
 }
 
 func (tn *TestNet) Listen(addr *net.TCPAddr) (net.Listener, error) {
-	tn.T.Helper()
+	tn.t.Helper()
 	if tn.ListenFn != nil {
 		return tn.ListenFn(addr)
 	}
@@ -31,7 +31,7 @@ func (tn *TestNet) Listen(addr *net.TCPAddr) (net.Listener, error) {
 }
 
 func (tn *TestNet) ListenPacket(addr *net.UDPAddr) (net.PacketConn, error) {
-	tn.T.Helper()
+	tn.t.Helper()
 	if tn.ListenPacketFn != nil {
 		return tn.ListenPacketFn(addr)
 	}
@@ -39,15 +39,15 @@ func (tn *TestNet) ListenPacket(addr *net.UDPAddr) (net.PacketConn, error) {
 }
 
 func (tn *TestNet) Dialer(laddr net.IP, port uint16) pointc.Dialer {
-	tn.T.Helper()
+	tn.t.Helper()
 	if tn.DialerFn != nil {
 		return tn.DialerFn(laddr, port)
 	}
-	return NewTestDialer(tn.T)
+	return NewTestDialer(tn.t)
 }
 
 func (tn *TestNet) LocalAddr() net.IP {
-	tn.T.Helper()
+	tn.t.Helper()
 	if tn.LocalAddrFn != nil {
 		return tn.LocalAddrFn()
 	}

@@ -114,8 +114,8 @@ func (pc *Pointc) Provision(ctx caddy.Context) error {
 }
 
 func (pc *Pointc) Start() error   { return nil }
-func (pc *Pointc) Stop() error    { return errors.Join(pc.lf.Stop(), pc.ops.Stop()) }
-func (pc *Pointc) Cleanup() error { return pc.Stop() }
+func (pc *Pointc) Stop() error    { return nil }
+func (pc *Pointc) Cleanup() error { return errors.Join(pc.lf.Cleanup(), pc.ops.Cleanup()) }
 
 // Lookup gets a [Net] by its declared name.
 func (pc *Pointc) Lookup(name string) (Net, bool) {

@@ -9,19 +9,19 @@ import (
 var _ net.Listener = (*TestListener)(nil)
 
 type TestListener struct {
-	T        testing.TB
-	AcceptFn func() (net.Conn, error)
-	CloseFn  func() error
-	AddrFn   func() net.Addr
+	t        testing.TB
+	AcceptFn func() (net.Conn, error) `json:"-"`
+	CloseFn  func() error             `json:"-"`
+	AddrFn   func() net.Addr          `json:"-"`
 }
 
 func NewTestListener(t testing.TB) *TestListener {
 	t.Helper()
-	return &TestListener{T: t}
+	return &TestListener{t: t}
 }
 
 func (tl *TestListener) Accept() (net.Conn, error) {
-	tl.T.Helper()
+	tl.t.Helper()
 	if tl.AcceptFn != nil {
 		return tl.AcceptFn()
 	}
@@ -29,7 +29,7 @@ func (tl *TestListener) Accept() (net.Conn, error) {
 }
 
 func (tl *TestListener) Close() error {
-	tl.T.Helper()
+	tl.t.Helper()
 	if tl.CloseFn != nil {
 		return tl.CloseFn()
 	}
@@ -37,9 +37,21 @@ func (tl *TestListener) Close() error {
 }
 
 func (tl *TestListener) Addr() net.Addr {
-	tl.T.Helper()
+	tl.t.Helper()
 	if tl.AddrFn != nil {
 		return tl.AddrFn()
 	}
 	return &net.TCPAddr{}
+}
+
+type TestListenerModule[T any] struct {
+	TestListener
+	TestModule[T]
+}
+
+func NewTestListenerModule[T any](t testing.TB) *TestListenerModule[T] {
+	return &TestListenerModule[T]{
+		TestListener: *NewTestListener(t),
+		TestModule:   *NewTestModule[T](t, "caddy.listeners.merge."),
+	}
 }

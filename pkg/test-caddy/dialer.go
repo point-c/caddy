@@ -11,18 +11,18 @@ import (
 var _ pointc.Dialer = (*TestDialer)(nil)
 
 type TestDialer struct {
-	T            testing.TB
+	t            testing.TB
 	DialFn       func(context.Context, *net.TCPAddr) (net.Conn, error)
 	DialPacketFn func(*net.UDPAddr) (net.PacketConn, error)
 }
 
 func NewTestDialer(t testing.TB) *TestDialer {
 	t.Helper()
-	return &TestDialer{T: t}
+	return &TestDialer{t: t}
 }
 
 func (td *TestDialer) Dial(ctx context.Context, addr *net.TCPAddr) (net.Conn, error) {
-	td.T.Helper()
+	td.t.Helper()
 	if td.DialFn != nil {
 		return td.DialFn(ctx, addr)
 	}
@@ -30,7 +30,7 @@ func (td *TestDialer) Dial(ctx context.Context, addr *net.TCPAddr) (net.Conn, er
 }
 
 func (td *TestDialer) DialPacket(addr *net.UDPAddr) (net.PacketConn, error) {
-	td.T.Helper()
+	td.t.Helper()
 	if td.DialPacketFn != nil {
 		return td.DialPacketFn(addr)
 	}

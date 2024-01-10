@@ -228,44 +228,15 @@ func TestLifeCycler_UnmarshalCaddyfile(t *testing.T) {
 }
 
 func TestLifeCycler_Cleanup(t *testing.T) {
-	t.Run("one ok", func(t *testing.T) {
+	t.Run("valid", func(t *testing.T) {
 		lf := lifecycler.LifeCycler[int]{
 			V: 123,
 			Started: []lifecycler.LifeCyclable[int]{
 				&TestModule[int]{},
 			},
 		}
-		require.NoError(t, lf.Stop())
-	})
-	t.Run("two ok", func(t *testing.T) {
-		lf := lifecycler.LifeCycler[int]{
-			V: 123,
-			Started: []lifecycler.LifeCyclable[int]{
-				&TestModule[int]{},
-				&TestModule[int]{},
-			},
-		}
-		require.NoError(t, lf.Stop())
-	})
-	t.Run("error", func(t *testing.T) {
-		lf := lifecycler.LifeCycler[int]{
-			V: 123,
-			Started: []lifecycler.LifeCyclable[int]{
-				&TestModule[int]{},
-				&TestModule[int]{stop: func() error { return errors.New("") }},
-			},
-		}
-		require.Error(t, lf.Stop())
-	})
-	t.Run("panic", func(t *testing.T) {
-		lf := lifecycler.LifeCycler[int]{
-			V: 123,
-			Started: []lifecycler.LifeCyclable[int]{
-				&TestModule[int]{stop: func() error { panic("") }},
-				&TestModule[int]{},
-			},
-		}
-		require.Error(t, lf.Stop())
+		require.NoError(t, lf.Cleanup())
+		require.Equal(t, lifecycler.LifeCycler[int]{}, lf)
 	})
 }
 

@@ -10,7 +10,7 @@ import (
 var _ net.Conn = (*TestConn)(nil)
 
 type TestConn struct {
-	T                  testing.TB
+	t                  testing.TB
 	ReadFn             func([]byte) (int, error)
 	WriteFn            func([]byte) (int, error)
 	CloseFn            func() error
@@ -23,11 +23,11 @@ type TestConn struct {
 
 func NewTestConn(t testing.TB) *TestConn {
 	t.Helper()
-	return &TestConn{T: t}
+	return &TestConn{t: t}
 }
 
 func (tc *TestConn) Read(b []byte) (int, error) {
-	tc.T.Helper()
+	tc.t.Helper()
 	if tc.ReadFn != nil {
 		return tc.ReadFn(b)
 	}
@@ -35,7 +35,7 @@ func (tc *TestConn) Read(b []byte) (int, error) {
 }
 
 func (tc *TestConn) Write(b []byte) (int, error) {
-	tc.T.Helper()
+	tc.t.Helper()
 	if tc.WriteFn != nil {
 		return tc.WriteFn(b)
 	}
@@ -43,7 +43,7 @@ func (tc *TestConn) Write(b []byte) (int, error) {
 }
 
 func (tc *TestConn) Close() error {
-	tc.T.Helper()
+	tc.t.Helper()
 	if tc.CloseFn != nil {
 		return tc.CloseFn()
 	}
@@ -51,7 +51,7 @@ func (tc *TestConn) Close() error {
 }
 
 func (tc *TestConn) LocalAddr() net.Addr {
-	tc.T.Helper()
+	tc.t.Helper()
 	if tc.LocalAddrFn != nil {
 		return tc.LocalAddrFn()
 	}
@@ -59,7 +59,7 @@ func (tc *TestConn) LocalAddr() net.Addr {
 }
 
 func (tc *TestConn) RemoteAddr() net.Addr {
-	tc.T.Helper()
+	tc.t.Helper()
 	if tc.RemoteAddrFn != nil {
 		return tc.RemoteAddrFn()
 	}
@@ -67,7 +67,7 @@ func (tc *TestConn) RemoteAddr() net.Addr {
 }
 
 func (tc *TestConn) SetDeadline(t time.Time) error {
-	tc.T.Helper()
+	tc.t.Helper()
 	if tc.SetDeadlineFn != nil {
 		return tc.SetDeadlineFn(t)
 	}
@@ -75,7 +75,7 @@ func (tc *TestConn) SetDeadline(t time.Time) error {
 }
 
 func (tc *TestConn) SetReadDeadline(t time.Time) error {
-	tc.T.Helper()
+	tc.t.Helper()
 	if tc.SetReadDeadlineFn != nil {
 		return tc.SetReadDeadlineFn(t)
 	}
@@ -83,7 +83,7 @@ func (tc *TestConn) SetReadDeadline(t time.Time) error {
 }
 
 func (tc *TestConn) SetWriteDeadline(t time.Time) error {
-	tc.T.Helper()
+	tc.t.Helper()
 	if tc.SetWriteDeadlineFn != nil {
 		return tc.SetWriteDeadlineFn(t)
 	}

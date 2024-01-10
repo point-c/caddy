@@ -8,15 +8,19 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"reflect"
-	"sync"
+)
+
+var (
+	_ json.Unmarshaler   = (*LifeCycler[any])(nil)
+	_ json.Marshaler     = (*LifeCycler[any])(nil)
+	_ caddy.CleanerUpper = (*LifeCycler[any])(nil)
 )
 
 type (
 	LifeCycler[T any] struct {
-		V        T
-		Modules  []LifeCyclable[T]
-		Started  []LifeCyclable[T]
-		stopOnce sync.Once
+		V       T
+		Modules []LifeCyclable[T]
+		Started []LifeCyclable[T]
 	}
 	ProvisionInfo struct {
 		StructPointer any
@@ -32,7 +36,6 @@ type (
 	LifeCyclable[T any] interface {
 		caddy.Module
 		Start(T) error
-		Stop() error
 	}
 )
 
@@ -83,10 +86,7 @@ func (l *LifeCycler[T]) Start() error {
 					err = errors.Join(err, fmt.Errorf("recovered panic starting %[2]s[%[1]d]: %[3]v", i, op.CaddyModule().ID, r))
 				}
 				if err != nil {
-					err = errors.Join(
-						fmt.Errorf("failed to start %[2]s[%[1]d]: %[3]w", i, op.CaddyModule().ID, err),
-						l.Stop(),
-					)
+					err = fmt.Errorf("failed to start %[2]s[%[1]d]: %[3]w", i, op.CaddyModule().ID, err)
 				}
 			}()
 			return op.Start(l.V)
@@ -101,22 +101,8 @@ func (l *LifeCycler[T]) Start() error {
 	return nil
 }
 
-func (l *LifeCycler[T]) Stop() (err error) {
-	l.stopOnce.Do(func() {
-		for i, op := range l.Started {
-			func() {
-				defer func() {
-					if r := recover(); r != nil {
-						err = errors.Join(err, fmt.Errorf("recovered panic stopping %[2]s[%[1]d]: %[3]v", i, op.CaddyModule().ID, r))
-					}
-				}()
-				err = errors.Join(err, op.Stop())
-			}()
-		}
-		l.Started = nil
-		l.Modules = nil
-		l.V = *new(T)
-	})
+func (l *LifeCycler[T]) Cleanup() (err error) {
+	*l = LifeCycler[T]{}
 	return
 }
 
@@ -148,7 +134,11 @@ func (l *LifeCycler[T]) UnmarshalCaddyfile(d *caddyfile.Dispenser, info *Caddyfi
 			if err != nil {
 				return err
 			}
-			*info.Raw = append(*info.Raw, caddyconfig.JSONModuleObject(v, info.SubModuleSpecifier, modName, nil))
+			var warn []caddyconfig.Warning
+			*info.Raw = append(*info.Raw, caddyconfig.JSONModuleObject(v, info.SubModuleSpecifier, modName, &warn))
+			if len(warn) != 0 {
+				return fmt.Errorf("%s", warn)
+			}
 		}
 	}
 	return nil
