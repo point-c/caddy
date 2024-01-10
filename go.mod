@@ -6,7 +6,6 @@ require (
 	github.com/caddyserver/caddy/v2 v2.7.6
 	github.com/google/uuid v1.5.0
 	github.com/pkg/errors v0.9.1
-	github.com/point-c/caddy-forward v0.0.1
 	github.com/point-c/channel-listener v0.0.1
 	github.com/point-c/test-caddy v0.0.3
 	github.com/stretchr/testify v1.8.4

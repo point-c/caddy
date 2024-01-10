@@ -463,8 +463,6 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pkg/profile v1.2.1/go.mod h1:hJw3o1OdXxsrSjjVksARp5W95eeEaEfptyVZyv6JUPA=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/point-c/caddy-forward v0.0.1 h1:fYoY89phwYIWchRLzzv3NPaQoi2xMrmkjxlUB9mKPLI=
-github.com/point-c/caddy-forward v0.0.1/go.mod h1:y2dz3Y98jNqOxJJpg+jNda1r5fQhuKZswUxKtt5Bk+0=
 github.com/point-c/channel-listener v0.0.1 h1:ykkTgw9wppIBALZkSLgON7T1+8hWGX2ih7DFrzY2rGg=
 github.com/point-c/channel-listener v0.0.1/go.mod h1:EJsdEMqhujddn9CKQlEwIvGTQrad7FQim+enRJJTVxE=
 github.com/point-c/test-caddy v0.0.3 h1:HaqBqGf8F4038EZzCcnPtHgH7jsO+FuYbLsV+t48Bp0=
