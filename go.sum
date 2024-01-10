@@ -463,8 +463,8 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pkg/profile v1.2.1/go.mod h1:hJw3o1OdXxsrSjjVksARp5W95eeEaEfptyVZyv6JUPA=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/point-c/caddy-merge-listener-wrapper v1.0.0 h1:x2iql3dpB+iRicrkiYZ1UnBLep3U5P5fbmjXvY4Abr8=
-github.com/point-c/caddy-merge-listener-wrapper v1.0.0/go.mod h1:IkMhf9lFZniyVXRhxOeVAvdLLZLKfGzKRICuH+M7q8c=
+github.com/point-c/caddy-forward v0.0.1 h1:fYoY89phwYIWchRLzzv3NPaQoi2xMrmkjxlUB9mKPLI=
+github.com/point-c/caddy-forward v0.0.1/go.mod h1:y2dz3Y98jNqOxJJpg+jNda1r5fQhuKZswUxKtt5Bk+0=
 github.com/point-c/channel-listener v0.0.1 h1:ykkTgw9wppIBALZkSLgON7T1+8hWGX2ih7DFrzY2rGg=
 github.com/point-c/channel-listener v0.0.1/go.mod h1:EJsdEMqhujddn9CKQlEwIvGTQrad7FQim+enRJJTVxE=
 github.com/point-c/test-caddy v0.0.3 h1:HaqBqGf8F4038EZzCcnPtHgH7jsO+FuYbLsV+t48Bp0=
@@ -618,6 +618,8 @@ go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738/go.mod h1:dnLIgRNXwCJa5e+c6mI
 go.mozilla.org/pkcs7 v0.0.0-20210730143726-725912489c62/go.mod h1:SNgMg+EgDFwmvSmLRTNKC5fegJjB7v23qTQ0XLGUNHk=
 go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 h1:CCriYyAfq1Br1aIYettdHZTy8mBTIPo7We18TuO/bak=
 go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352/go.mod h1:SNgMg+EgDFwmvSmLRTNKC5fegJjB7v23qTQ0XLGUNHk=
+go.mrchanchal.com/zaphandler v0.0.0-20230611140024-bd4fd80897ad h1:e06B5x0w6Z+5UhSas+6ywH0dm0i6QaIge1Bjx+aXaVM=
+go.mrchanchal.com/zaphandler v0.0.0-20230611140024-bd4fd80897ad/go.mod h1:cH+8mqXs/fUx1WkDnEF1Dbj2i4Y6C3qeIjhhFGY4eV8=
 go.opencensus.io v0.20.1/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
 go.opencensus.io v0.20.2/go.mod h1:6WKK9ahsWS3RSO+PY9ZHZUfv2irvY6gN279GOPZjmmk=
 go.opencensus.io v0.22.2/go.mod h1:yxeiOL68Rb0Xd1ddK5vPZ/oVn4vY4Ynel7k9FzqtOIw=

@@ -6,10 +6,11 @@ require (
 	github.com/caddyserver/caddy/v2 v2.7.6
 	github.com/google/uuid v1.5.0
 	github.com/pkg/errors v0.9.1
-	github.com/point-c/caddy-merge-listener-wrapper v1.0.0
+	github.com/point-c/caddy-forward v0.0.1
 	github.com/point-c/channel-listener v0.0.1
 	github.com/point-c/test-caddy v0.0.3
 	github.com/stretchr/testify v1.8.4
+	go.mrchanchal.com/zaphandler v0.0.0-20230611140024-bd4fd80897ad
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
 )
 

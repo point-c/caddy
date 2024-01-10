@@ -134,11 +134,7 @@ func (l *LifeCycler[T]) UnmarshalCaddyfile(d *caddyfile.Dispenser, info *Caddyfi
 			if err != nil {
 				return err
 			}
-			var warn []caddyconfig.Warning
-			*info.Raw = append(*info.Raw, caddyconfig.JSONModuleObject(v, info.SubModuleSpecifier, modName, &warn))
-			if len(warn) != 0 {
-				return fmt.Errorf("%s", warn)
-			}
+			*info.Raw = append(*info.Raw, caddyconfig.JSONModuleObject(v, info.SubModuleSpecifier, modName, nil))
 		}
 	}
 	return nil
