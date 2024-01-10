@@ -6,7 +6,7 @@ import (
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/point-c/caddy/pkg/configvalues"
-	"github.com/point-c/caddy/pkg/simplewg"
+	"github.com/point-c/simplewg"
 	"go.mrchanchal.com/zaphandler"
 	"io"
 	"log/slog"
