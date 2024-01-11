@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/point-c/caddy/pkg/caddyreg"
 	"github.com/point-c/caddy/pkg/configvalues"
 	"github.com/point-c/caddy/pkg/lifecycler"
 )
 
 func init() {
-	caddy.RegisterModule(new(Forward))
+	caddyreg.R[*Forward]()
 }
 
 var (
@@ -50,10 +51,7 @@ func (f *Forward) Start(lookup NetLookup) error {
 func (f *Forward) Cleanup() error { return f.lf.Cleanup() }
 
 func (f *Forward) CaddyModule() caddy.ModuleInfo {
-	return caddy.ModuleInfo{
-		ID:  "point-c.ops.forward",
-		New: func() caddy.Module { return new(Forward) },
-	}
+	return caddyreg.Info[Forward, *Forward]("point-c.ops.forward")
 }
 
 func (f *Forward) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {

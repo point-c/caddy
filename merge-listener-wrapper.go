@@ -5,13 +5,14 @@ import (
 	"errors"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/point-c/caddy/pkg/caddyreg"
 	"github.com/point-c/caddy/pkg/lifecycler"
 	"github.com/point-c/channel-listener"
 	"net"
 )
 
 func init() {
-	caddy.RegisterModule(new(MergeWrapper))
+	caddyreg.R[*MergeWrapper]()
 }
 
 var (
@@ -45,10 +46,7 @@ type MergeWrapper struct {
 
 // CaddyModule implements [caddy.Module].
 func (p *MergeWrapper) CaddyModule() caddy.ModuleInfo {
-	return caddy.ModuleInfo{
-		ID:  "caddy.listeners.merge",
-		New: func() caddy.Module { return new(MergeWrapper) },
-	}
+	return caddyreg.Info[MergeWrapper, *MergeWrapper]("caddy.listeners.merge")
 }
 
 // Provision implements [caddy.Provisioner].

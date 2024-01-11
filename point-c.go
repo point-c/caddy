@@ -8,6 +8,7 @@ import (
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
+	"github.com/point-c/caddy/pkg/caddyreg"
 	"github.com/point-c/caddy/pkg/configvalues"
 	"github.com/point-c/caddy/pkg/lifecycler"
 	"net"
@@ -19,7 +20,7 @@ const (
 )
 
 func init() {
-	caddy.RegisterModule(new(Pointc))
+	caddyreg.R[*Pointc]()
 	httpcaddyfile.RegisterGlobalOption(CaddyfilePointCName, configvalues.CaddyfileUnmarshaler[Pointc, *Pointc](CaddyfilePointCName))
 	httpcaddyfile.RegisterGlobalOption(CaddyfileNetOpName, configvalues.CaddyfileUnmarshaler[Pointc, *Pointc](CaddyfileNetOpName))
 }
@@ -73,10 +74,7 @@ type Pointc struct {
 }
 
 func (*Pointc) CaddyModule() caddy.ModuleInfo {
-	return caddy.ModuleInfo{
-		ID:  "point-c",
-		New: func() caddy.Module { return new(Pointc) },
-	}
+	return caddyreg.Info[Pointc, *Pointc]("point-c")
 }
 
 func (pc *Pointc) Provision(ctx caddy.Context) error {

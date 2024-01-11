@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/point-c/caddy/pkg/caddyreg"
 	"github.com/point-c/caddy/pkg/configvalues"
 	"net"
 )
 
 func init() {
-	caddy.RegisterModule(new(Listener))
+	caddyreg.R[*Listener]()
 }
 
 var (
@@ -50,10 +51,7 @@ func (p *Listener) Close() error              { return p.ln.Close() }
 func (p *Listener) Addr() net.Addr            { return p.ln.Addr() }
 
 func (*Listener) CaddyModule() caddy.ModuleInfo {
-	return caddy.ModuleInfo{
-		ID:  "caddy.listeners.merge.listeners.point-c",
-		New: func() caddy.Module { return new(Listener) },
-	}
+	return caddyreg.Info[Listener, *Listener]("caddy.listeners.merge.listeners.point-c")
 }
 
 // UnmarshalCaddyfile unmarshals the caddyfile.

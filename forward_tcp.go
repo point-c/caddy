@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/point-c/caddy/pkg/caddyreg"
 	"github.com/point-c/caddy/pkg/configvalues"
 	"github.com/point-c/simplewg"
 	"go.mrchanchal.com/zaphandler"
@@ -14,7 +15,7 @@ import (
 )
 
 func init() {
-	caddy.RegisterModule(new(ForwardTCP))
+	caddyreg.R[*ForwardTCP]()
 }
 
 var (
@@ -42,10 +43,7 @@ func (f *ForwardTCP) Provision(ctx caddy.Context) error {
 func (f *ForwardTCP) Cleanup() error { return f.Stop() }
 
 func (f *ForwardTCP) CaddyModule() caddy.ModuleInfo {
-	return caddy.ModuleInfo{
-		ID:  "point-c.op.forward.tcp",
-		New: func() caddy.Module { return new(ForwardTCP) },
-	}
+	return caddyreg.Info[ForwardTCP, *ForwardTCP]("point-c.op.forward.tcp")
 }
 
 func (f *ForwardTCP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
