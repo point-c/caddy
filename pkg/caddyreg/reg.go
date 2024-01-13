@@ -1,10 +1,14 @@
 package caddyreg
 
-import "github.com/caddyserver/caddy/v2"
+import (
+	"github.com/caddyserver/caddy/v2"
+)
 
-// R registers the provided caddy module
+// R registers the provided caddy module.
 func R[T caddy.Module]() { caddy.RegisterModule(*new(T)) }
 
+// Info helps generate the [caddy.ModuleInfo] by automatically filling in the [caddy.ModuleInfo.New] field.
+// The id parameter is set to the ID field of the [caddy.ModuleInfo].
 func Info[T any, I interface {
 	*T
 	caddy.Module

@@ -49,9 +49,7 @@ type TestListenerModule[T any] struct {
 	TestModule[T]
 }
 
-func NewTestListenerModule[T any](t testing.TB) *TestListenerModule[T] {
-	return &TestListenerModule[T]{
-		TestListener: *NewTestListener(t),
-		TestModule:   *NewTestModule[T](t, "caddy.listeners.merge."),
-	}
+func NewTestListenerModule[T any](t testing.TB) (v *TestListenerModule[T]) {
+	defer NewTestModule[T, *TestListenerModule[T]](t, &v, func(v *TestListenerModule[T]) *TestModule[T] { t.Helper(); return &v.TestModule }, "caddy.listeners.merge.")
+	return &TestListenerModule[T]{TestListener: *NewTestListener(t)}
 }
