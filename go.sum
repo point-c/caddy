@@ -465,6 +465,8 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/point-c/channel-listener v0.0.1 h1:ykkTgw9wppIBALZkSLgON7T1+8hWGX2ih7DFrzY2rGg=
 github.com/point-c/channel-listener v0.0.1/go.mod h1:EJsdEMqhujddn9CKQlEwIvGTQrad7FQim+enRJJTVxE=
+github.com/point-c/ipcheck v0.0.1 h1:/8ECG1odPQ0jmot94Lwo2Jcc1C8JC3sbcVi9rad85VQ=
+github.com/point-c/ipcheck v0.0.1/go.mod h1:nSjDLlNIAntdDD1hGxqn0dp6/bdHoA8l7thErL0NtH4=
 github.com/point-c/simplewg v0.0.1 h1:K+fQPFyN09BmzZO7dk/FptpZZv4YQaDmY/OKa8LhzF8=
 github.com/point-c/simplewg v0.0.1/go.mod h1:IsQY8WruR4fpQt4Vv2gFCf17qyJLbElqRF1DwOrlwoo=
 github.com/point-c/test-caddy v0.0.3 h1:HaqBqGf8F4038EZzCcnPtHgH7jsO+FuYbLsV+t48Bp0=

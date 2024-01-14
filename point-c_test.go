@@ -10,10 +10,144 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/google/uuid"
 	pointc "github.com/point-c/caddy"
+	"github.com/point-c/ipcheck"
 	test_caddy "github.com/point-c/test-caddy"
 	"github.com/stretchr/testify/require"
+	"net"
 	"testing"
 )
+
+func TestPointc_Register(t *testing.T) {
+	t.Run("not private network", func(t *testing.T) {
+		var pc pointc.Pointc
+		n := test_caddy.NewTestNet(t)
+		n.LocalAddrFn = func() net.IP { return net.IPv4(1, 1, 1, 1) }
+		require.ErrorContains(t, pc.Register("", n), "address is not private network")
+	})
+
+	t.Run("ip address collision", func(t *testing.T) {
+		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
+		defer cancel()
+		testNet1 := test_caddy.NewTestNetwork(t)
+		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
+			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
+		}
+		testNet2 := test_caddy.NewTestNetwork(t)
+		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
+			return fn("test2", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
+		}
+		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet1.Id()+`"}, {"type": "test-`+testNet2.Id()+`"}]}`))
+		require.ErrorContains(t, err, "share same address")
+	})
+
+	t.Run("network exists", func(t *testing.T) {
+		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
+		defer cancel()
+		testNet1 := test_caddy.NewTestNetwork(t)
+		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
+			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
+		}
+		testNet2 := test_caddy.NewTestNetwork(t)
+		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
+			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
+		}
+		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet1.Id()+`"}, {"type": "test-`+testNet2.Id()+`"}]}`))
+		require.ErrorContains(t, err, "share same address")
+	})
+}
+
+func TestPointcNet_ValidLocalAddr(t *testing.T) {
+	ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
+	defer cancel()
+	testNet1 := test_caddy.NewTestNetwork(t)
+	testNet1.StartFn = func(fn pointc.RegisterFunc) error {
+		return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
+	}
+	pcm, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet1.Id()+`"}]}`))
+	require.NoError(t, err)
+	pc, ok := pcm.(*pointc.Pointc)
+	require.True(t, ok)
+	n, ok := pc.Lookup("test1")
+	require.True(t, ok)
+	pcn, ok := n.(*pointc.PointcNet)
+	require.True(t, ok)
+
+	t.Run("not local addr", func(t *testing.T) {
+		require.True(t, pcn.ValidLocalAddr(net.IPv4(1, 1, 1, 1)))
+	})
+
+	t.Run("not matching", func(t *testing.T) {
+		require.True(t, pcn.ValidLocalAddr(net.IPv4(192, 168, 1, 1)))
+	})
+
+	t.Run("matching", func(t *testing.T) {
+		require.False(t, pcn.ValidLocalAddr(net.IPv4(192, 168, 0, 1)))
+	})
+}
+
+func TestPointcNet_Listen(t *testing.T) {
+	ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
+	defer cancel()
+	testNet1 := test_caddy.NewTestNetwork(t)
+	testN := &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }}
+	testNet1.StartFn = func(fn pointc.RegisterFunc) error {
+		return fn("test1", testN)
+	}
+	testNet2 := test_caddy.NewTestNetwork(t)
+	testNet2.StartFn = func(fn pointc.RegisterFunc) error {
+		return fn("test2", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 2) }})
+	}
+	pcm, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet1.Id()+`"}, {"type": "test-`+testNet2.Id()+`"}]}`))
+	require.NoError(t, err)
+	pc, ok := pcm.(*pointc.Pointc)
+	require.True(t, ok)
+	n, ok := pc.Lookup("test1")
+	require.True(t, ok)
+
+	t.Run("listen", func(t *testing.T) {
+		t.Run("tcp", func(t *testing.T) {
+			t.Run("invalid addr", func(t *testing.T) {
+				_, err := n.Listen(&net.TCPAddr{IP: net.IPv4(1, 1, 1, 1)})
+				require.ErrorIs(t, err, ipcheck.ErrInvalidLocalIP)
+			})
+			t.Run("valid addr", func(t *testing.T) {
+				defer func() { testN.ListenFn = nil }()
+				testN.ListenFn = func(addr *net.TCPAddr) (net.Listener, error) { return nil, nil }
+				_, err := n.Listen(&net.TCPAddr{IP: net.IPv4zero})
+				require.NoError(t, err)
+			})
+		})
+		t.Run("udp", func(t *testing.T) {
+			t.Run("invalid addr", func(t *testing.T) {
+				_, err := n.ListenPacket(&net.UDPAddr{IP: net.IPv4(1, 1, 1, 1)})
+				require.ErrorIs(t, err, ipcheck.ErrInvalidLocalIP)
+			})
+			t.Run("valid addr", func(t *testing.T) {
+				defer func() { testN.ListenPacketFn = nil }()
+				testN.ListenPacketFn = func(addr *net.UDPAddr) (net.PacketConn, error) { return nil, nil }
+				_, err := n.ListenPacket(&net.UDPAddr{IP: net.IPv4zero})
+				require.NoError(t, err)
+			})
+		})
+	})
+
+	t.Run("dialer", func(t *testing.T) {
+		t.Run("local net", func(t *testing.T) {
+			defer func() { testN.DialerFn = nil }()
+			testN.DialerFn = func(ip net.IP, _ uint16) pointc.Dialer {
+				require.True(t, net.IPv4(192, 168, 0, 1).Equal(ip))
+				return nil
+			}
+			n.Dialer(net.IPv4(192, 168, 0, 2), 0)
+		})
+		t.Run("other net", func(t *testing.T) {
+			defer func() { testN.DialerFn = nil }()
+			ipExp := net.IPv4(192, 168, 1, 1)
+			testN.DialerFn = func(ip net.IP, _ uint16) pointc.Dialer { require.True(t, ipExp.Equal(ip)); return nil }
+			n.Dialer(ipExp, 0)
+		})
+	})
+}
 
 func TestPointc_StartStop(t *testing.T) {
 	ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
@@ -80,7 +214,7 @@ func TestPointc_Provision(t *testing.T) {
 		defer cancel()
 		testNet := test_caddy.NewTestNetwork(t)
 		testNet.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test1", nil)
+			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 0) }})
 		}
 		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet.Id()+`"}]}`))
 		require.NoError(t, err)
@@ -91,11 +225,11 @@ func TestPointc_Provision(t *testing.T) {
 		defer cancel()
 		testNet1 := test_caddy.NewTestNetwork(t)
 		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test1", nil)
+			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 0) }})
 		}
 		testNet2 := test_caddy.NewTestNetwork(t)
 		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test2", nil)
+			return fn("test2", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
 		}
 		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet1.Id()+`"}, {"type": "test-`+testNet2.Id()+`"}]}`))
 		require.NoError(t, err)
@@ -106,11 +240,11 @@ func TestPointc_Provision(t *testing.T) {
 		defer cancel()
 		testNet1 := test_caddy.NewTestNetwork(t)
 		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test1", nil)
+			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 0) }})
 		}
 		testNet2 := test_caddy.NewTestNetwork(t)
 		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test2", nil)
+			return fn("test2", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
 		}
 		testOp1, testOp2 := test_caddy.NewTestNetOp(t), test_caddy.NewTestNetOp(t)
 		expErr := errors.New("json unmarshal fail " + uuid.NewString())
@@ -135,11 +269,11 @@ func TestPointc_Provision(t *testing.T) {
 		defer cancel()
 		testNet1 := test_caddy.NewTestNetwork(t)
 		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test1", nil)
+			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 0) }})
 		}
 		testNet2 := test_caddy.NewTestNetwork(t)
 		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test2", nil)
+			return fn("test2", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
 		}
 		testOp1, testOp2 := test_caddy.NewTestNetOp(t), test_caddy.NewTestNetOp(t)
 		caddy.RegisterModule(testOp1)
@@ -162,11 +296,11 @@ func TestPointc_Provision(t *testing.T) {
 		defer cancel()
 		testNet1 := test_caddy.NewTestNetwork(t)
 		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test1", nil)
+			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 0) }})
 		}
 		testNet2 := test_caddy.NewTestNetwork(t)
 		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test1", nil)
+			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
 		}
 		_, err := ctx.LoadModuleByID("point-c", caddyconfig.JSON(map[string][]json.RawMessage{
 			"networks": {

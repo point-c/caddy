@@ -92,7 +92,7 @@ func TestListener_Provision(t *testing.T) {
 			return fn("test", &test_caddy.TestNet{
 				T:           t,
 				ListenFn:    func(*net.TCPAddr) (net.Listener, error) { return nil, errExp },
-				LocalAddrFn: func() net.IP { return nil },
+				LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 0) },
 			})
 		}
 
@@ -117,7 +117,7 @@ func TestListener_Provision(t *testing.T) {
 			return fn("test", &test_caddy.TestNet{
 				T:           t,
 				ListenFn:    func(*net.TCPAddr) (net.Listener, error) { return tl, nil },
-				LocalAddrFn: func() net.IP { return nil },
+				LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 0) },
 			})
 		}
 

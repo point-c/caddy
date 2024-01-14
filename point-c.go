@@ -11,6 +11,7 @@ import (
 	"github.com/point-c/caddy/pkg/caddyreg"
 	"github.com/point-c/caddy/pkg/configvalues"
 	"github.com/point-c/caddy/pkg/lifecycler"
+	"github.com/point-c/ipcheck"
 	"net"
 )
 
@@ -77,16 +78,74 @@ func (*Pointc) CaddyModule() caddy.ModuleInfo {
 	return caddyreg.Info[Pointc, *Pointc]("point-c")
 }
 
+type PointcNet struct {
+	pc *Pointc
+	n  Net
+}
+
+func (p *PointcNet) ValidLocalAddr(ip net.IP) bool {
+	if ipcheck.IsPrivateNetwork(ip) {
+		for _, n := range p.pc.net {
+			if n.LocalAddr().Equal(ip) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func (p *PointcNet) Listen(addr *net.TCPAddr) (net.Listener, error) {
+	// Restrict listening to either the specified ip or all ips
+	if !(addr.IP.Equal(p.LocalAddr()) || net.IPv4zero.Equal(addr.IP)) {
+		return nil, ipcheck.ErrInvalidLocalIP
+	}
+	return p.n.Listen(addr)
+}
+
+func (p *PointcNet) ListenPacket(addr *net.UDPAddr) (net.PacketConn, error) {
+	// If equal to registered address but not this network's registered address
+	if !(addr.IP.Equal(p.LocalAddr()) || net.IPv4zero.Equal(addr.IP)) {
+		return nil, ipcheck.ErrInvalidLocalIP
+	}
+	return p.n.ListenPacket(addr)
+}
+
+func (p *PointcNet) Dialer(laddr net.IP, port uint16) Dialer {
+	// External network is probably similar to internal, change ip
+	// TODO: something better?
+	if !p.ValidLocalAddr(laddr) {
+		laddr = p.LocalAddr()
+	}
+	return p.n.Dialer(laddr, port)
+}
+
+func (p *PointcNet) LocalAddr() net.IP { return p.n.LocalAddr() }
+
+func (pc *Pointc) Register(key string, n Net) error {
+	if !ipcheck.IsPrivateNetwork(n.LocalAddr()) {
+		return errors.New("address is not private network")
+	}
+
+	for name, nv := range pc.net {
+		if nv.LocalAddr().Equal(n.LocalAddr()) {
+			return fmt.Errorf("network %q and %q share same address %s", name, key, nv.LocalAddr().String())
+		}
+	}
+
+	if _, ok := pc.net[key]; ok {
+		return fmt.Errorf("network %q already exists", key)
+	}
+	pc.net[key] = &PointcNet{
+		pc: pc,
+		n:  n,
+	}
+	return nil
+}
+
 func (pc *Pointc) Provision(ctx caddy.Context) error {
 	pc.net = make(map[string]Net)
 	pc.ops.SetValue(pc)
-	pc.lf.SetValue(func(key string, n Net) error {
-		if _, ok := pc.net[key]; ok {
-			return fmt.Errorf("network %q already exists", key)
-		}
-		pc.net[key] = n
-		return nil
-	})
+	pc.lf.SetValue(pc.Register)
 
 	if err := pc.lf.Provision(ctx, &lifecycler.ProvisionInfo{
 		StructPointer: pc,
