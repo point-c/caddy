@@ -51,7 +51,7 @@ func (f *Forward) Start(lookup NetLookup) error {
 func (f *Forward) Cleanup() error { return f.lf.Cleanup() }
 
 func (f *Forward) CaddyModule() caddy.ModuleInfo {
-	return caddyreg.Info[Forward, *Forward]("point-c.ops.forward")
+	return caddyreg.Info[Forward, *Forward]("point-c.op.forward")
 }
 
 func (f *Forward) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
