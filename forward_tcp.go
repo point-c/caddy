@@ -48,6 +48,12 @@ func (f *ForwardTCP) CaddyModule() caddy.ModuleInfo {
 
 func (f *ForwardTCP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
+		if d.Val() == "tcp" {
+			if !d.NextArg() {
+				return d.ArgErr()
+			}
+		}
+
 		if err := f.Ports.UnmarshalCaddyfile(d); err != nil {
 			return err
 		} else if f.Ports.Value().IsUDP {

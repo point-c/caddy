@@ -121,6 +121,40 @@ func TestForwardTCP_UnmarshalCaddyfile(t *testing.T) {
 			Host: net.IPv4zero,
 		}, *ftcp.Ports.Value())
 	})
+	t.Run("no next", func(t *testing.T) {
+		var ftcp pointc.ForwardTCP
+		require.Error(t, ftcp.UnmarshalCaddyfile(caddyfile.NewTestDispenser("tcp")))
+
+	})
+	t.Run("full", func(t *testing.T) {
+		b, warn, err := caddyconfig.GetAdapter("caddyfile").Adapt(caddyfile.Format([]byte(`{
+	netop {
+		forward test {
+			tcp 80:80
+		}
+	}
+}`)), nil)
+		require.NoError(t, err)
+		require.Empty(t, warn)
+		require.JSONEq(t, string(caddyconfig.JSON(map[string]any{
+			"apps": map[string]any{
+				"point-c": map[string]any{
+					"net-ops": []any{
+						map[string]any{
+							"host": "test",
+							"forwards": []any{
+								map[string]any{
+									"forward": "tcp",
+									"ports":   "80:80",
+								},
+							},
+							"op": "forward",
+						},
+					},
+				},
+			},
+		}, nil)), string(b))
+	})
 }
 
 func TestTcpCopy(t *testing.T) {

@@ -23,7 +23,8 @@ const (
 func init() {
 	caddyreg.R[*Pointc]()
 	httpcaddyfile.RegisterGlobalOption(CaddyfilePointCName, configvalues.CaddyfileUnmarshaler[Pointc, *Pointc](CaddyfilePointCName))
-	httpcaddyfile.RegisterGlobalOption(CaddyfileNetOpName, configvalues.CaddyfileUnmarshaler[Pointc, *Pointc](CaddyfileNetOpName))
+	// Same app different directive
+	httpcaddyfile.RegisterGlobalOption(CaddyfileNetOpName, configvalues.CaddyfileUnmarshaler[Pointc, *Pointc](CaddyfilePointCName))
 }
 
 var (

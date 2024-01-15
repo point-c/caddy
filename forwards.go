@@ -24,8 +24,8 @@ var (
 
 type (
 	Forward struct {
-		ForwardsRaw []json.RawMessage `json:"forwards,omitempty" caddy:"namespace=point-c.op.forward inline_key=forward"`
-		Host        configvalues.Hostname
+		ForwardsRaw []json.RawMessage     `json:"forwards,omitempty" caddy:"namespace=point-c.op.forward inline_key=forward"`
+		Host        configvalues.Hostname `json:"host"`
 		lf          lifecycler.LifeCycler[Net]
 	}
 	ForwardProto = lifecycler.LifeCyclable[Net]
