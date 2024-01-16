@@ -7,7 +7,7 @@ import (
 	"net"
 )
 
-const NetworkStubName = "stub"
+const NetworkStubName = "stub:"
 
 func init() {
 	caddy.RegisterNetwork(NetworkStubName, StubListener)

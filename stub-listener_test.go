@@ -2,6 +2,7 @@ package point_c_test
 
 import (
 	"context"
+	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	_ "github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	"github.com/point-c/caddy"
@@ -9,15 +10,30 @@ import (
 	"io"
 	"net"
 	"testing"
+	"time"
 )
 
 func TestStubListener(t *testing.T) {
-	ln, err := point_c.StubListener(context.TODO(), "", "test", net.ListenConfig{})
-	if err != nil {
-		t.Fail()
-		return
-	}
-	defer ln.(io.Closer).Close()
+	t.Run("call", func(t *testing.T) {
+		ln, err := point_c.StubListener(context.TODO(), "", "test", net.ListenConfig{})
+		if err != nil {
+			t.Fail()
+			return
+		}
+		defer ln.(io.Closer).Close()
+	})
+
+	t.Run("caddy call", func(t *testing.T) {
+		addr, err := caddy.ParseNetworkAddress("stub://0.0.0.0")
+		require.NoError(t, err)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+		ctx, cancel = caddy.NewContext(caddy.Context{Context: ctx})
+		defer cancel()
+		ln, err := addr.Listen(ctx, 0, net.ListenConfig{})
+		require.NoError(t, err)
+		require.NotNil(t, ln)
+	})
 }
 
 func TestStubAddr(t *testing.T) {
