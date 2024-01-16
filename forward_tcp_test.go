@@ -128,7 +128,7 @@ func TestForwardTCP_UnmarshalCaddyfile(t *testing.T) {
 	})
 	t.Run("full", func(t *testing.T) {
 		b, warn, err := caddyconfig.GetAdapter("caddyfile").Adapt(caddyfile.Format([]byte(`{
-	netop {
+	point-c netops {
 		forward test {
 			tcp 80:80
 		}

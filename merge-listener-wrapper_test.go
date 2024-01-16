@@ -187,14 +187,10 @@ func acceptTest(t testing.TB, n int, acceptor func(t testing.TB, wrapped *test_c
 		}
 	}()
 
-	for i, a := range append(accept, nil) {
+	for i, _ := range append(accept, nil) {
 		select {
 		case err := <-errs:
-			if a == nil {
-				require.ErrorIs(t, err, net.ErrClosed)
-			} else {
-				require.NoError(t, err, "i = %d", i)
-			}
+			require.ErrorIs(t, err, net.ErrClosed)
 		case c := <-conn:
 			require.NotNil(t, c, "i = %d", i)
 		case <-ctx.Done():

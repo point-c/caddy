@@ -10,11 +10,13 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/google/uuid"
 	pointc "github.com/point-c/caddy"
-	"github.com/point-c/ipcheck"
+	"github.com/point-c/simplewg"
 	test_caddy "github.com/point-c/test-caddy"
 	"github.com/stretchr/testify/require"
+	"io"
 	"net"
 	"testing"
+	"time"
 )
 
 func TestPointc_Register(t *testing.T) {
@@ -56,40 +58,13 @@ func TestPointc_Register(t *testing.T) {
 	})
 }
 
-func TestPointcNet_ValidLocalAddr(t *testing.T) {
-	ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
-	defer cancel()
-	testNet1 := test_caddy.NewTestNetwork(t)
-	testNet1.StartFn = func(fn pointc.RegisterFunc) error {
-		return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
-	}
-	pcm, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet1.Id()+`"}]}`))
-	require.NoError(t, err)
-	pc, ok := pcm.(*pointc.Pointc)
-	require.True(t, ok)
-	n, ok := pc.Lookup("test1")
-	require.True(t, ok)
-	pcn, ok := n.(*pointc.PointcNet)
-	require.True(t, ok)
-
-	t.Run("not local addr", func(t *testing.T) {
-		require.True(t, pcn.ValidLocalAddr(net.IPv4(1, 1, 1, 1)))
-	})
-
-	t.Run("not matching", func(t *testing.T) {
-		require.True(t, pcn.ValidLocalAddr(net.IPv4(192, 168, 1, 1)))
-	})
-
-	t.Run("matching", func(t *testing.T) {
-		require.False(t, pcn.ValidLocalAddr(net.IPv4(192, 168, 0, 1)))
-	})
-}
-
 func TestPointcNet_Listen(t *testing.T) {
 	ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 	defer cancel()
 	testNet1 := test_caddy.NewTestNetwork(t)
 	testN := &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }}
+	testN.ListenFn = func(addr *net.TCPAddr) (net.Listener, error) { return nil, nil }
+	testN.ListenPacketFn = func(addr *net.UDPAddr) (net.PacketConn, error) { return nil, nil }
 	testNet1.StartFn = func(fn pointc.RegisterFunc) error {
 		return fn("test1", testN)
 	}
@@ -106,11 +81,7 @@ func TestPointcNet_Listen(t *testing.T) {
 
 	t.Run("listen", func(t *testing.T) {
 		t.Run("tcp", func(t *testing.T) {
-			t.Run("invalid addr", func(t *testing.T) {
-				_, err := n.Listen(&net.TCPAddr{IP: net.IPv4(1, 1, 1, 1)})
-				require.ErrorIs(t, err, ipcheck.ErrInvalidLocalIP)
-			})
-			t.Run("valid addr", func(t *testing.T) {
+			t.Run("valid", func(t *testing.T) {
 				defer func() { testN.ListenFn = nil }()
 				testN.ListenFn = func(addr *net.TCPAddr) (net.Listener, error) { return nil, nil }
 				_, err := n.Listen(&net.TCPAddr{IP: net.IPv4zero})
@@ -118,11 +89,7 @@ func TestPointcNet_Listen(t *testing.T) {
 			})
 		})
 		t.Run("udp", func(t *testing.T) {
-			t.Run("invalid addr", func(t *testing.T) {
-				_, err := n.ListenPacket(&net.UDPAddr{IP: net.IPv4(1, 1, 1, 1)})
-				require.ErrorIs(t, err, ipcheck.ErrInvalidLocalIP)
-			})
-			t.Run("valid addr", func(t *testing.T) {
+			t.Run("valid", func(t *testing.T) {
 				defer func() { testN.ListenPacketFn = nil }()
 				testN.ListenPacketFn = func(addr *net.UDPAddr) (net.PacketConn, error) { return nil, nil }
 				_, err := n.ListenPacket(&net.UDPAddr{IP: net.IPv4zero})
@@ -323,6 +290,17 @@ func TestPointc_Provision(t *testing.T) {
 }
 
 func TestPointc_UnmarshalCaddyfile(t *testing.T) {
+	t.Run("bad verb", func(t *testing.T) {
+		var pc pointc.Pointc
+		require.ErrorContains(t, pc.UnmarshalCaddyfile(caddyfile.NewTestDispenser(string(caddyfile.Format([]byte(`point-c foo {
+}`))))), "verb")
+	})
+
+	t.Run("bad verb", func(t *testing.T) {
+		var pc pointc.Pointc
+		require.NoError(t, pc.UnmarshalCaddyfile(caddyfile.NewTestDispenser("")))
+	})
+
 	testNet := test_caddy.NewTestNetwork(t)
 	testOp := test_caddy.NewTestNetOp(t)
 	caddy.RegisterModule(testOp)
@@ -333,21 +311,16 @@ func TestPointc_UnmarshalCaddyfile(t *testing.T) {
 		json      string
 		wantErr   bool
 	}{
-		{name: "nothing", json: "{}"},
-		{
-			name:      "bad name",
-			caddyfile: "foo {\n}\n",
-			wantErr:   true,
-		},
 		{
 			name: "2x netop",
-			caddyfile: fmt.Sprintf(`netop {
-	%[1]s
-}
-netop {
-	%[1]s
-}
-`, testOp.Id()),
+			caddyfile: fmt.Sprintf(`{
+	point-c netops {
+		%[1]s
+	}
+	point-c netops {
+		%[1]s
+	}
+}`, testOp.Id()),
 			json: string(caddyconfig.JSON(map[string]any{
 				"net-ops": []any{
 					map[string]string{"op": testOp.Id()},
@@ -357,9 +330,11 @@ netop {
 		},
 		{
 			name: "netop",
-			caddyfile: fmt.Sprintf(`netop {
+			caddyfile: fmt.Sprintf(`{
+point-c netops {
 	%[1]s
 	%[1]s
+}
 }
 `, testOp.Id()),
 			json: string(caddyconfig.JSON(map[string]any{
@@ -371,17 +346,19 @@ netop {
 		},
 		{
 			name: "2x point-c & 2x net op",
-			caddyfile: fmt.Sprintf(`point-c {
-	%[1]s
-}
-netop {
-	%[2]s
-}
-point-c {
-	%[1]s
-}
-netop {
-	%[2]s
+			caddyfile: fmt.Sprintf(`{
+	point-c {
+		%[1]s
+	}
+	point-c netops {
+		%[2]s
+	}
+	point-c {
+		%[1]s
+	}
+	point-c netops {
+		%[2]s
+	}
 }`, testNet.ID().Name(), testOp.Id()),
 			json: string(caddyconfig.JSON(map[string]any{
 				"net-ops": []any{
@@ -396,50 +373,61 @@ netop {
 		},
 		{
 			name: "2x point-c",
-			caddyfile: fmt.Sprintf(`point-c {
-	%[1]s
-}
-point-c {
-	%[1]s
+			caddyfile: fmt.Sprintf(`{
+	point-c {
+		%[1]s
+	}
+	point-c {
+		%[1]s
+	}
 }`, testNet.ID().Name()),
 			json: fmt.Sprintf(`{"networks": [{"type": "%[1]s"}, {"type": "%[1]s"}]}`, testNet.ID().Name()),
 		},
 		{
 			name: "point-c",
-			caddyfile: fmt.Sprintf(`point-c {
+			caddyfile: fmt.Sprintf(`{
+point-c {
 	%[1]s
 	%[1]s
+}
 }`, testNet.ID().Name()),
 			json: fmt.Sprintf(`{"networks": [{"type": "%[1]s"}, {"type": "%[1]s"}]}`, testNet.ID().Name()),
 		},
 		{
 			name: "point c submodule does not exist",
-			caddyfile: `point-c {
+			caddyfile: `{
+point-c {
 	foobar
+}
 }`,
 			wantErr: true,
 		},
 		{
 			name: "net op submodule does not exist",
-			caddyfile: `netop {
+			caddyfile: `{
+netop {
 	foobar
+}
 }`,
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var pc pointc.Pointc
-			ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
-			defer cancel()
-			require.NoError(t, pc.Provision(ctx))
-			if err := pc.UnmarshalCaddyfile(caddyfile.NewTestDispenser(tt.caddyfile)); tt.wantErr {
-				require.Errorf(t, err, "UnmarshalCaddyfile() wantErr %v", tt.wantErr)
-				return
+			tt.caddyfile = string(caddyfile.Format([]byte(tt.caddyfile)))
+			adapter := caddyconfig.GetAdapter("caddyfile")
+			require.NotNil(t, adapter)
+			b, warn, err := adapter.Adapt([]byte(tt.caddyfile), nil)
+			if tt.wantErr {
+				if err == nil && len(warn) == 0 {
+					require.Error(t, err)
+					require.NotEmpty(t, warn)
+				}
 			} else {
-				require.NoError(t, err, "UnmarshalCaddyfile()")
+				require.NoError(t, err)
+				require.Empty(t, warn)
+				require.JSONEq(t, string(caddyconfig.JSON(map[string]any{"apps": map[string]any{"point-c": json.RawMessage(tt.json)}}, nil)), string(b))
 			}
-			require.JSONEq(t, tt.json, string(caddyconfig.JSON(&pc, nil)), "caddyfile != json")
 		})
 	}
 
@@ -461,5 +449,56 @@ point-c {
 		defer cancel()
 		_, err := ctx.LoadModuleByID("point-c", b)
 		require.NoError(t, err)
+	})
+}
+
+func TestSystemNet(t *testing.T) {
+	n := pointc.NewSystemNet()
+	d := n.Dialer(net.IPv4zero, 0)
+	t.Run("tcp", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		defer cancel()
+		var w simplewg.Wg
+		ln, err := n.Listen(&net.TCPAddr{})
+		require.NoError(t, err)
+		closed := make(chan struct{})
+		w.Go(func() {
+			defer cancel()
+			cn, err := ln.Accept()
+			require.NoError(t, err)
+			require.NoError(t, cn.Close())
+			close(closed)
+			_, err = ln.Accept()
+			require.Error(t, err)
+		})
+		w.Go(func() {
+			cn, err := d.Dial(ctx, ln.Addr().(*net.TCPAddr))
+			require.NoError(t, err)
+			<-closed
+			require.NoError(t, cn.Close())
+			require.NoError(t, ln.Close())
+		})
+		w.Wait()
+	})
+	t.Run("udp", func(t *testing.T) {
+		var w simplewg.Wg
+		ln, err := n.ListenPacket(&net.UDPAddr{})
+		require.NoError(t, err)
+		closed := make(chan struct{})
+		w.Go(func() {
+			_, _, err := ln.ReadFrom([]byte{})
+			require.NoError(t, err)
+			close(closed)
+		})
+		w.Go(func() {
+			cn, err := d.DialPacket(ln.LocalAddr().(*net.UDPAddr))
+			require.NoError(t, err)
+			_, err = cn.(io.Writer).Write([]byte{})
+			require.NoError(t, err)
+			<-closed
+			require.NoError(t, cn.Close())
+			require.NoError(t, ln.Close())
+		})
+		w.Wait()
 	})
 }

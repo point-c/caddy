@@ -17,14 +17,11 @@ import (
 
 const (
 	CaddyfilePointCName = "point-c"
-	CaddyfileNetOpName  = "netop"
 )
 
 func init() {
 	caddyreg.R[*Pointc]()
 	httpcaddyfile.RegisterGlobalOption(CaddyfilePointCName, configvalues.CaddyfileUnmarshaler[Pointc, *Pointc](CaddyfilePointCName))
-	// Same app different directive
-	httpcaddyfile.RegisterGlobalOption(CaddyfileNetOpName, configvalues.CaddyfileUnmarshaler[Pointc, *Pointc](CaddyfilePointCName))
 }
 
 var (
@@ -75,52 +72,36 @@ type Pointc struct {
 	net         map[string]Net
 }
 
+type NetOpApp Pointc
+
 func (*Pointc) CaddyModule() caddy.ModuleInfo {
 	return caddyreg.Info[Pointc, *Pointc]("point-c")
 }
 
-type PointcNet struct {
-	pc *Pointc
-	n  Net
+type DynamicNet struct {
+	ListenFn       func(*net.TCPAddr) (net.Listener, error)
+	ListenPacketFn func(*net.UDPAddr) (net.PacketConn, error)
+	DialerFn       func(laddr net.IP, port uint16) Dialer
+	LocalAddrFn    func() net.IP
 }
 
-func (p *PointcNet) ValidLocalAddr(ip net.IP) bool {
-	if ipcheck.IsPrivateNetwork(ip) {
-		for _, n := range p.pc.net {
-			if n.LocalAddr().Equal(ip) {
-				return false
-			}
-		}
-	}
-	return true
+func (d *DynamicNet) LocalAddr() net.IP                                   { return d.LocalAddrFn() }
+func (d *DynamicNet) Dialer(a net.IP, p uint16) Dialer                    { return d.DialerFn(a, p) }
+func (d *DynamicNet) Listen(a *net.TCPAddr) (net.Listener, error)         { return d.ListenFn(a) }
+func (d *DynamicNet) ListenPacket(a *net.UDPAddr) (net.PacketConn, error) { return d.ListenPacketFn(a) }
+
+type DynamicDialer struct {
+	DialFn       func(ctx context.Context, addr *net.TCPAddr) (net.Conn, error)
+	DialPacketFn func(addr *net.UDPAddr) (net.PacketConn, error)
 }
 
-func (p *PointcNet) Listen(addr *net.TCPAddr) (net.Listener, error) {
-	// Restrict listening to either the specified ip or all ips
-	if !(addr.IP.Equal(p.LocalAddr()) || net.IPv4zero.Equal(addr.IP)) {
-		return nil, ipcheck.ErrInvalidLocalIP
-	}
-	return p.n.Listen(addr)
+func (d *DynamicDialer) Dial(c context.Context, a *net.TCPAddr) (net.Conn, error) {
+	return d.DialFn(c, a)
 }
 
-func (p *PointcNet) ListenPacket(addr *net.UDPAddr) (net.PacketConn, error) {
-	// If equal to registered address but not this network's registered address
-	if !(addr.IP.Equal(p.LocalAddr()) || net.IPv4zero.Equal(addr.IP)) {
-		return nil, ipcheck.ErrInvalidLocalIP
-	}
-	return p.n.ListenPacket(addr)
+func (d *DynamicDialer) DialPacket(a *net.UDPAddr) (net.PacketConn, error) {
+	return d.DialPacketFn(a)
 }
-
-func (p *PointcNet) Dialer(laddr net.IP, port uint16) Dialer {
-	// External network is probably similar to internal, change ip
-	// TODO: something better?
-	if !p.ValidLocalAddr(laddr) {
-		laddr = p.LocalAddr()
-	}
-	return p.n.Dialer(laddr, port)
-}
-
-func (p *PointcNet) LocalAddr() net.IP { return p.n.LocalAddr() }
 
 func (pc *Pointc) Register(key string, n Net) error {
 	if !ipcheck.IsPrivateNetwork(n.LocalAddr()) {
@@ -136,15 +117,41 @@ func (pc *Pointc) Register(key string, n Net) error {
 	if _, ok := pc.net[key]; ok {
 		return fmt.Errorf("network %q already exists", key)
 	}
-	pc.net[key] = &PointcNet{
-		pc: pc,
-		n:  n,
+
+	pc.net[key] = &DynamicNet{
+		LocalAddrFn:    n.LocalAddr,
+		ListenFn:       n.Listen,
+		ListenPacketFn: n.ListenPacket,
+		DialerFn: func(laddr net.IP, port uint16) Dialer {
+			for _, pcn := range pc.net {
+				if !n.LocalAddr().Equal(pcn.LocalAddr()) && laddr.Equal(pcn.LocalAddr()) {
+					return n.Dialer(n.LocalAddr(), port)
+				}
+			}
+			return n.Dialer(laddr, port)
+		},
 	}
 	return nil
 }
 
+func NewSystemNet() Net {
+	return &DynamicNet{
+		ListenFn:       func(addr *net.TCPAddr) (net.Listener, error) { return net.Listen("tcp", addr.String()) },
+		ListenPacketFn: func(addr *net.UDPAddr) (net.PacketConn, error) { return net.ListenPacket("udp", addr.String()) },
+		DialerFn: func(laddr net.IP, port uint16) Dialer {
+			return &DynamicDialer{
+				DialFn: func(c context.Context, a *net.TCPAddr) (net.Conn, error) {
+					return new(net.Dialer).DialContext(c, "tcp", a.String())
+				},
+				DialPacketFn: func(a *net.UDPAddr) (net.PacketConn, error) { return net.DialUDP("udp", nil, a) },
+			}
+		},
+		LocalAddrFn: func() net.IP { return net.IPv4zero },
+	}
+}
+
 func (pc *Pointc) Provision(ctx caddy.Context) error {
-	pc.net = make(map[string]Net)
+	pc.net = map[string]Net{"system": NewSystemNet()}
 	pc.ops.SetValue(pc)
 	pc.lf.SetValue(pc.Register)
 
@@ -182,35 +189,28 @@ func (pc *Pointc) Lookup(name string) (Net, bool) {
 }
 
 // UnmarshalCaddyfile unmarshals a submodules from a caddyfile.
+// The `netops` modifier causes the modules to be loaded as netops.
 //
 //	{
-//	  point-c {
-//	    <submodule name> <submodule config>
-//	  }
-//	  netop {
+//	  point-c [netops] {
 //	    <submodule name> <submodule config>
 //	  }
 //	}
 func (pc *Pointc) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
-		switch v := d.Val(); v {
-		case "point-c":
-			if err := pc.lf.UnmarshalCaddyfile(d.NewFromNextSegment(), &lifecycler.CaddyfileInfo{
+		if v := d.Val(); !d.NextArg() && v == "point-c" {
+			return pc.lf.UnmarshalCaddyfile(d.NewFromNextSegment(), &lifecycler.CaddyfileInfo{
 				ModuleID:           "point-c.net.",
 				Raw:                &pc.NetworksRaw,
 				SubModuleSpecifier: "type",
-			}); err != nil {
-				return err
-			}
-		case "netop":
-			if err := pc.ops.UnmarshalCaddyfile(d.NewFromNextSegment(), &lifecycler.CaddyfileInfo{
+			})
+		} else if v := d.Val(); v == "netops" {
+			return pc.ops.UnmarshalCaddyfile(d.NewFromNextSegment(), &lifecycler.CaddyfileInfo{
 				ModuleID:           "point-c.op.",
 				Raw:                &pc.NetOps,
 				SubModuleSpecifier: "op",
-			}); err != nil {
-				return err
-			}
-		default:
+			})
+		} else {
 			return fmt.Errorf("unrecognized verb %q", v)
 		}
 	}
