@@ -51,7 +51,7 @@ func (p *Listener) Close() error              { return p.ln.Close() }
 func (p *Listener) Addr() net.Addr            { return p.ln.Addr() }
 
 func (*Listener) CaddyModule() caddy.ModuleInfo {
-	return caddyreg.Info[Listener, *Listener]("caddy.listeners.merge.listeners.point-c")
+	return caddyreg.Info[Listener, *Listener]("caddy.listeners.merge.point-c")
 }
 
 // UnmarshalCaddyfile unmarshals the caddyfile.

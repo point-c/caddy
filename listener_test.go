@@ -69,7 +69,7 @@ func TestListener_Provision(t *testing.T) {
 			},
 		})
 		defer cancel()
-		_, err := ctx.LoadModuleByID("caddy.listeners.merge.listeners.point-c", json.RawMessage("{}"))
+		_, err := ctx.LoadModuleByID("caddy.listeners.merge.point-c", json.RawMessage("{}"))
 		require.Error(t, err)
 	})
 
@@ -80,7 +80,7 @@ func TestListener_Provision(t *testing.T) {
 			},
 		})
 		defer cancel()
-		_, err := ctx.LoadModuleByID("caddy.listeners.merge.listeners.point-c", json.RawMessage("{}"))
+		_, err := ctx.LoadModuleByID("caddy.listeners.merge.point-c", json.RawMessage("{}"))
 		require.Error(t, err)
 	})
 
@@ -106,7 +106,7 @@ func TestListener_Provision(t *testing.T) {
 			},
 		})
 		defer cancel()
-		_, err := ctx.LoadModuleByID("caddy.listeners.merge.listeners.point-c", json.RawMessage(`{"name": "test", "port": 80}`))
+		_, err := ctx.LoadModuleByID("caddy.listeners.merge.point-c", json.RawMessage(`{"name": "test", "port": 80}`))
 		require.ErrorContains(t, err, errExp.Error())
 	})
 
@@ -134,7 +134,7 @@ func TestListener_Provision(t *testing.T) {
 		require.NoError(t, pc.Start())
 		defer func() { require.NoError(t, pc.Stop()) }()
 
-		a, err := ctx.LoadModuleByID("caddy.listeners.merge.listeners.point-c", json.RawMessage(`{"name": "test", "port": 80}`))
+		a, err := ctx.LoadModuleByID("caddy.listeners.merge.point-c", json.RawMessage(`{"name": "test", "port": 80}`))
 		require.NoError(t, err)
 		_, ok := a.(net.Listener)
 		require.True(t, ok)
