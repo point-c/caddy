@@ -146,3 +146,10 @@ func TestListener_Provision(t *testing.T) {
 		require.Equal(t, ee, ge)
 	})
 }
+
+func TestListener_Start(t *testing.T) {
+	var l pointc.Listener
+	require.NoError(t, l.Start(func(ln net.Listener) {
+		require.Equal(t, &l, ln)
+	}))
+}

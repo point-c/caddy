@@ -25,24 +25,27 @@ var (
 
 // MergeWrapper loads multiple [net.Listener]s and aggregates their [net.Conn]s into a single [net.Listener].
 // It allows caddy to accept connections from multiple sources.
-type MergeWrapper struct {
-	// ListenerRaw is a slice of JSON-encoded data representing listener configurations.
-	// These configurations are used to create the actual net.Listener instances.
-	// Listeners should implement [net.Listener] and be in the 'caddy.listeners.merge.listeners' namespace.
-	ListenerRaw []json.RawMessage `json:"listeners" caddy:"namespace=caddy.listeners.merge inline_key=listener"`
+type (
+	MergeWrapper struct {
+		// ListenerRaw is a slice of JSON-encoded data representing listener configurations.
+		// These configurations are used to create the actual net.Listener instances.
+		// Listeners should implement [net.Listener] and be in the 'caddy.listeners.merge.listeners' namespace.
+		ListenerRaw []json.RawMessage `json:"listeners" caddy:"namespace=caddy.listeners.merge inline_key=listener"`
 
-	// listeners is a slice of net.Listener instances created based on the configurations
-	// provided in ListenerRaw. These listeners are the actual network listeners that
-	// will be accepting connections.
-	listeners []net.Listener
+		// listeners is a slice of net.Listener instances created based on the configurations
+		// provided in ListenerRaw. These listeners are the actual network listeners that
+		// will be accepting connections.
+		listeners []net.Listener
 
-	// conns is a channel for net.Conn instances. Connections accepted by any of the
-	// listeners in the 'listeners' slice are sent through this channel.
-	// This channel is passed to the constructor of [channel_listener.Listener].
-	conns chan net.Conn
+		// conns is a channel for net.Conn instances. Connections accepted by any of the
+		// listeners in the 'listeners' slice are sent through this channel.
+		// This channel is passed to the constructor of [channel_listener.Listener].
+		conns chan net.Conn
 
-	lf lifecycler.LifeCycler[func(net.Listener)]
-}
+		lf lifecycler.LifeCycler[func(net.Listener)]
+	}
+	ListenerProvider lifecycler.LifeCyclable[func(net.Listener)]
+)
 
 // CaddyModule implements [caddy.Module].
 func (p *MergeWrapper) CaddyModule() caddy.ModuleInfo {

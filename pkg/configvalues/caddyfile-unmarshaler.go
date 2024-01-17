@@ -28,7 +28,7 @@ func CaddyfileUnmarshaler[T any, TP caddyfileUnmarshaler[T]](name string) func(d
 				// Type assertion failed
 				return nil, fmt.Errorf("not a %T", j)
 			} else if j.Name != name {
-				// Name mismatch, somehow resuming mismatched configs
+				// Path mismatch, somehow resuming mismatched configs
 				return nil, fmt.Errorf("expected app with name %q, got %q", name, j.Name)
 			}
 

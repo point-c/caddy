@@ -19,6 +19,7 @@ var (
 	_ net.Listener          = (*Listener)(nil)
 	_ caddy.Module          = (*Listener)(nil)
 	_ caddyfile.Unmarshaler = (*Listener)(nil)
+	_ ListenerProvider      = (*Listener)(nil)
 )
 
 // Listener allows a caddy server to listen on a point-c network.
@@ -53,6 +54,8 @@ func (p *Listener) Addr() net.Addr            { return p.ln.Addr() }
 func (*Listener) CaddyModule() caddy.ModuleInfo {
 	return caddyreg.Info[Listener, *Listener]("caddy.listeners.merge.point-c")
 }
+
+func (p *Listener) Start(fn func(net.Listener)) error { fn(p); return nil }
 
 // UnmarshalCaddyfile unmarshals the caddyfile.
 //
