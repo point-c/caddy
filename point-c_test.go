@@ -10,8 +10,8 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/google/uuid"
 	pointc "github.com/point-c/caddy"
+	test_caddy "github.com/point-c/caddy/pkg/test-caddy"
 	"github.com/point-c/simplewg"
-	test_caddy "github.com/point-c/test-caddy"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net"
@@ -31,14 +31,20 @@ func TestPointc_Register(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
 		testNet1 := test_caddy.NewTestNetwork(t)
+		testNet1.Register()
 		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
+			n := test_caddy.NewTestNet(t)
+			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 1) }
+			return fn("test1", n)
 		}
 		testNet2 := test_caddy.NewTestNetwork(t)
+		testNet2.Register()
 		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test2", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
+			n := test_caddy.NewTestNet(t)
+			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 1) }
+			return fn("test2", n)
 		}
-		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet1.Id()+`"}, {"type": "test-`+testNet2.Id()+`"}]}`))
+		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "`+testNet1.ID+`"}, {"type": "`+testNet2.ID+`"}]}`))
 		require.ErrorContains(t, err, "share same address")
 	})
 
@@ -46,14 +52,20 @@ func TestPointc_Register(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
 		testNet1 := test_caddy.NewTestNetwork(t)
+		testNet1.Register()
 		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
+			n := test_caddy.NewTestNet(t)
+			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 1) }
+			return fn("test1", n)
 		}
 		testNet2 := test_caddy.NewTestNetwork(t)
+		testNet2.Register()
 		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
+			n := test_caddy.NewTestNet(t)
+			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 1) }
+			return fn("test1", n)
 		}
-		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet1.Id()+`"}, {"type": "test-`+testNet2.Id()+`"}]}`))
+		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "`+testNet1.ID+`"}, {"type": "`+testNet2.ID+`"}]}`))
 		require.ErrorContains(t, err, "share same address")
 	})
 }
@@ -62,17 +74,22 @@ func TestPointcNet_Listen(t *testing.T) {
 	ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 	defer cancel()
 	testNet1 := test_caddy.NewTestNetwork(t)
-	testN := &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }}
+	testNet1.Register()
+	testN := test_caddy.NewTestNet(t)
+	testN.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 1) }
 	testN.ListenFn = func(addr *net.TCPAddr) (net.Listener, error) { return nil, nil }
 	testN.ListenPacketFn = func(addr *net.UDPAddr) (net.PacketConn, error) { return nil, nil }
 	testNet1.StartFn = func(fn pointc.RegisterFunc) error {
 		return fn("test1", testN)
 	}
 	testNet2 := test_caddy.NewTestNetwork(t)
+	testNet2.Register()
 	testNet2.StartFn = func(fn pointc.RegisterFunc) error {
-		return fn("test2", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 2) }})
+		n := test_caddy.NewTestNet(t)
+		n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 2) }
+		return fn("test2", n)
 	}
-	pcm, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet1.Id()+`"}, {"type": "test-`+testNet2.Id()+`"}]}`))
+	pcm, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "`+testNet1.ID+`"}, {"type": "`+testNet2.ID+`"}]}`))
 	require.NoError(t, err)
 	pc, ok := pcm.(*pointc.Pointc)
 	require.True(t, ok)
@@ -172,7 +189,8 @@ func TestPointc_Provision(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
 		testNet := test_caddy.NewTestNetwork(t)
-		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet.Id()+`"}]}`))
+		testNet.Register()
+		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "`+testNet.ID+`"}]}`))
 		require.NoError(t, err)
 	})
 
@@ -180,10 +198,13 @@ func TestPointc_Provision(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
 		testNet := test_caddy.NewTestNetwork(t)
+		testNet.Register()
 		testNet.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 0) }})
+			n := test_caddy.NewTestNet(t)
+			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 0) }
+			return fn("test1", n)
 		}
-		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet.Id()+`"}]}`))
+		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "`+testNet.ID+`"}]}`))
 		require.NoError(t, err)
 	})
 
@@ -191,14 +212,20 @@ func TestPointc_Provision(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
 		testNet1 := test_caddy.NewTestNetwork(t)
+		testNet1.Register()
 		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 0) }})
+			n := test_caddy.NewTestNet(t)
+			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 0) }
+			return fn("test1", n)
 		}
 		testNet2 := test_caddy.NewTestNetwork(t)
+		testNet2.Register()
 		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test2", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
+			n := test_caddy.NewTestNet(t)
+			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 1) }
+			return fn("test2", n)
 		}
-		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet1.Id()+`"}, {"type": "test-`+testNet2.Id()+`"}]}`))
+		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "`+testNet1.ID+`"}, {"type": "`+testNet2.ID+`"}]}`))
 		require.NoError(t, err)
 	})
 
@@ -206,12 +233,18 @@ func TestPointc_Provision(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
 		testNet1 := test_caddy.NewTestNetwork(t)
+		testNet1.Register()
 		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 0) }})
+			n := test_caddy.NewTestNet(t)
+			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 0) }
+			return fn("test1", n)
 		}
 		testNet2 := test_caddy.NewTestNetwork(t)
+		testNet2.Register()
 		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test2", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
+			n := test_caddy.NewTestNet(t)
+			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 1) }
+			return fn("test2", n)
 		}
 		testOp1, testOp2 := test_caddy.NewTestNetOp(t), test_caddy.NewTestNetOp(t)
 		expErr := errors.New("json unmarshal fail " + uuid.NewString())
@@ -220,12 +253,12 @@ func TestPointc_Provision(t *testing.T) {
 		caddy.RegisterModule(testOp2)
 		_, err := ctx.LoadModuleByID("point-c", caddyconfig.JSON(map[string]any{
 			"networks": []any{
-				caddyconfig.JSONModuleObject(struct{}{}, "type", "test-"+testNet1.Id(), nil),
-				caddyconfig.JSONModuleObject(struct{}{}, "type", "test-"+testNet2.Id(), nil),
+				caddyconfig.JSONModuleObject(struct{}{}, "type", testNet1.ID, nil),
+				caddyconfig.JSONModuleObject(struct{}{}, "type", testNet2.ID, nil),
 			},
 			"net-ops": []any{
-				caddyconfig.JSONModuleObject(struct{}{}, "op", testOp1.Id(), nil),
-				caddyconfig.JSONModuleObject(struct{}{}, "op", testOp2.Id(), nil),
+				caddyconfig.JSONModuleObject(struct{}{}, "op", testOp1.ID, nil),
+				caddyconfig.JSONModuleObject(struct{}{}, "op", testOp2.ID, nil),
 			},
 		}, nil))
 		require.ErrorContains(t, err, expErr.Error())
@@ -235,24 +268,30 @@ func TestPointc_Provision(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
 		testNet1 := test_caddy.NewTestNetwork(t)
+		testNet1.Register()
 		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 0) }})
+			n := test_caddy.NewTestNet(t)
+			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 0) }
+			return fn("test1", n)
 		}
 		testNet2 := test_caddy.NewTestNetwork(t)
+		testNet2.Register()
 		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test2", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
+			n := test_caddy.NewTestNet(t)
+			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 1) }
+			return fn("test2", n)
 		}
 		testOp1, testOp2 := test_caddy.NewTestNetOp(t), test_caddy.NewTestNetOp(t)
 		caddy.RegisterModule(testOp1)
 		caddy.RegisterModule(testOp2)
 		_, err := ctx.LoadModuleByID("point-c", caddyconfig.JSON(map[string]any{
 			"networks": []any{
-				caddyconfig.JSONModuleObject(struct{}{}, "type", "test-"+testNet1.Id(), nil),
-				caddyconfig.JSONModuleObject(struct{}{}, "type", "test-"+testNet2.Id(), nil),
+				caddyconfig.JSONModuleObject(struct{}{}, "type", testNet1.ID, nil),
+				caddyconfig.JSONModuleObject(struct{}{}, "type", testNet2.ID, nil),
 			},
 			"net-ops": []any{
-				caddyconfig.JSONModuleObject(struct{}{}, "op", testOp1.Id(), nil),
-				caddyconfig.JSONModuleObject(struct{}{}, "op", testOp2.Id(), nil),
+				caddyconfig.JSONModuleObject(struct{}{}, "op", testOp1.ID, nil),
+				caddyconfig.JSONModuleObject(struct{}{}, "op", testOp2.ID, nil),
 			},
 		}, nil))
 		require.NoError(t, err)
@@ -262,17 +301,23 @@ func TestPointc_Provision(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
 		testNet1 := test_caddy.NewTestNetwork(t)
+		testNet1.Register()
 		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 0) }})
+			n := test_caddy.NewTestNet(t)
+			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 0) }
+			return fn("test1", n)
 		}
 		testNet2 := test_caddy.NewTestNetwork(t)
+		testNet2.Register()
 		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test1", &test_caddy.TestNet{T: t, LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 1) }})
+			n := test_caddy.NewTestNet(t)
+			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 1) }
+			return fn("test1", n)
 		}
 		_, err := ctx.LoadModuleByID("point-c", caddyconfig.JSON(map[string][]json.RawMessage{
 			"networks": {
-				caddyconfig.JSONModuleObject(struct{}{}, "type", "test-"+testNet1.Id(), nil),
-				caddyconfig.JSONModuleObject(struct{}{}, "type", "test-"+testNet2.Id(), nil),
+				caddyconfig.JSONModuleObject(struct{}{}, "type", testNet1.ID, nil),
+				caddyconfig.JSONModuleObject(struct{}{}, "type", testNet2.ID, nil),
 			},
 		}, nil))
 		require.Error(t, err)
@@ -284,7 +329,7 @@ func TestPointc_Provision(t *testing.T) {
 		defer cancel()
 		testNet := test_caddy.NewTestNetwork(t)
 		testNet.UnmarshalJSONFn = func([]byte) error { return errors.New("test") }
-		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet.Id()+`"}]}`))
+		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "test-`+testNet.ID+`"}]}`))
 		require.Error(t, err)
 	})
 }
@@ -302,6 +347,7 @@ func TestPointc_UnmarshalCaddyfile(t *testing.T) {
 	})
 
 	testNet := test_caddy.NewTestNetwork(t)
+	testNet.Register()
 	testOp := test_caddy.NewTestNetOp(t)
 	caddy.RegisterModule(testOp)
 
@@ -320,11 +366,11 @@ func TestPointc_UnmarshalCaddyfile(t *testing.T) {
 	point-c netops {
 		%[1]s
 	}
-}`, testOp.Id()),
+}`, testOp.ID),
 			json: string(caddyconfig.JSON(map[string]any{
 				"net-ops": []any{
-					map[string]string{"op": testOp.Id()},
-					map[string]string{"op": testOp.Id()},
+					map[string]string{"op": testOp.ID},
+					map[string]string{"op": testOp.ID},
 				},
 			}, nil)),
 		},
@@ -336,11 +382,11 @@ point-c netops {
 	%[1]s
 }
 }
-`, testOp.Id()),
+`, testOp.ID),
 			json: string(caddyconfig.JSON(map[string]any{
 				"net-ops": []any{
-					map[string]string{"op": testOp.Id()},
-					map[string]string{"op": testOp.Id()},
+					map[string]string{"op": testOp.ID},
+					map[string]string{"op": testOp.ID},
 				},
 			}, nil)),
 		},
@@ -359,15 +405,15 @@ point-c netops {
 	point-c netops {
 		%[2]s
 	}
-}`, testNet.ID().Name(), testOp.Id()),
+}`, testNet.Module.Name(), testOp.ID),
 			json: string(caddyconfig.JSON(map[string]any{
 				"net-ops": []any{
-					map[string]string{"op": testOp.Id()},
-					map[string]string{"op": testOp.Id()},
+					map[string]string{"op": testOp.ID},
+					map[string]string{"op": testOp.ID},
 				},
 				"networks": []any{
-					map[string]string{"type": testNet.ID().Name()},
-					map[string]string{"type": testNet.ID().Name()},
+					map[string]string{"type": testNet.Module.Name()},
+					map[string]string{"type": testNet.Module.Name()},
 				},
 			}, nil)),
 		},
@@ -380,8 +426,8 @@ point-c netops {
 	point-c {
 		%[1]s
 	}
-}`, testNet.ID().Name()),
-			json: fmt.Sprintf(`{"networks": [{"type": "%[1]s"}, {"type": "%[1]s"}]}`, testNet.ID().Name()),
+}`, testNet.Module.Name()),
+			json: fmt.Sprintf(`{"networks": [{"type": "%[1]s"}, {"type": "%[1]s"}]}`, testNet.Module.Name()),
 		},
 		{
 			name: "point-c",
@@ -390,8 +436,8 @@ point-c {
 	%[1]s
 	%[1]s
 }
-}`, testNet.ID().Name()),
-			json: fmt.Sprintf(`{"networks": [{"type": "%[1]s"}, {"type": "%[1]s"}]}`, testNet.ID().Name()),
+}`, testNet.Module.Name()),
+			json: fmt.Sprintf(`{"networks": [{"type": "%[1]s"}, {"type": "%[1]s"}]}`, testNet.Module.Name()),
 		},
 		{
 			name: "point c submodule does not exist",
@@ -439,7 +485,7 @@ netop {
 			require.NoError(t, pc.Provision(ctx))
 			require.NoError(t, pc.UnmarshalCaddyfile(caddyfile.NewTestDispenser(fmt.Sprintf(`point-c {
 	%[1]s
-}`, testNet.ID().Name()))))
+}`, testNet.Module.Name()))))
 			b, err := json.Marshal(pc)
 			require.NoError(t, err)
 			return b

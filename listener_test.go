@@ -9,7 +9,7 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/google/uuid"
 	pointc "github.com/point-c/caddy"
-	"github.com/point-c/test-caddy"
+	test_caddy "github.com/point-c/caddy/pkg/test-caddy"
 	"github.com/stretchr/testify/require"
 	"net"
 	"testing"
@@ -65,7 +65,7 @@ func TestListener_Provision(t *testing.T) {
 		testNet.UnmarshalJSONFn = func([]byte) error { return errors.New("test") }
 		ctx, cancel := test_caddy.NewCaddyContext(t, context.TODO(), caddy.Config{
 			AppsRaw: map[string]json.RawMessage{
-				"point-c": json.RawMessage(`{"networks": [{"type": "test-` + testNet.Id() + `"}]}`),
+				"point-c": json.RawMessage(`{"networks": [{"type": "` + testNet.ID + `"}]}`),
 			},
 		})
 		defer cancel()
@@ -86,21 +86,21 @@ func TestListener_Provision(t *testing.T) {
 
 	t.Run("network errors on listen", func(t *testing.T) {
 		tn := test_caddy.NewTestNetwork(t)
+		tn.Register()
 		tn.UnmarshalJSONFn = func([]byte) error { return nil }
 		errExp := errors.New("test err " + uuid.New().String())
 		tn.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test", &test_caddy.TestNet{
-				T:           t,
-				ListenFn:    func(*net.TCPAddr) (net.Listener, error) { return nil, errExp },
-				LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 0) },
-			})
+			n := test_caddy.NewTestNet(t)
+			n.ListenFn = func(*net.TCPAddr) (net.Listener, error) { return nil, errExp }
+			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 0) }
+			return fn("test", n)
 		}
 
 		ctx, cancel := test_caddy.NewCaddyContext(t, context.TODO(), caddy.Config{
 			AppsRaw: map[string]json.RawMessage{
 				"point-c": caddyconfig.JSON(map[string]any{
 					"networks": []any{
-						caddyconfig.JSONModuleObject(struct{}{}, "type", "test-"+tn.Id(), nil),
+						caddyconfig.JSONModuleObject(struct{}{}, "type", tn.ID, nil),
 					},
 				}, nil),
 			},
@@ -112,18 +112,18 @@ func TestListener_Provision(t *testing.T) {
 
 	t.Run("valid", func(t *testing.T) {
 		tn := test_caddy.NewTestNetwork(t)
+		tn.Register()
 		tl := test_caddy.NewTestListener(t)
 		tn.StartFn = func(fn pointc.RegisterFunc) error {
-			return fn("test", &test_caddy.TestNet{
-				T:           t,
-				ListenFn:    func(*net.TCPAddr) (net.Listener, error) { return tl, nil },
-				LocalAddrFn: func() net.IP { return net.IPv4(192, 168, 0, 0) },
-			})
+			n := test_caddy.NewTestNet(t)
+			n.ListenFn = func(*net.TCPAddr) (net.Listener, error) { return tl, nil }
+			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 0) }
+			return fn("test", n)
 		}
 
 		ctx, cancel := test_caddy.NewCaddyContext(t, context.TODO(), caddy.Config{
 			AppsRaw: map[string]json.RawMessage{
-				"point-c": json.RawMessage(`{"networks": [{"type": "test-` + tn.Id() + `"}]}`),
+				"point-c": json.RawMessage(`{"networks": [{"type": "` + tn.ID + `"}]}`),
 			},
 		})
 		defer cancel()
