@@ -1,10 +1,7 @@
 package configvalues
 
 import (
-	"github.com/caddyserver/caddy/v2"
 	"net"
-	"strconv"
-	"strings"
 )
 
 // These are convenience types that may be used in configurations.
@@ -30,31 +27,12 @@ type (
 	// It allows caddy's replacer to replace the string before it is used.
 	String = CaddyTextUnmarshaler[string, ValueString, *ValueString]
 
-	// PortPair represents a structured combination of ports and, optionally, their host and protocol,
-	// formatted as [<host>:]<src>:<dst>[/<tcp|udp>].
-	PortPair = CaddyTextUnmarshaler[*PortPairValue, ValuePortPair, *ValuePortPair]
-
-	Protocol = CaddyTextUnmarshaler[string, ValueProtocol, *ValueProtocol]
+	// PortPair represents a structured combination of ports formatted as <src>:<dst>.
+	PortPair = CaddyTextUnmarshaler[*PairValue[uint16], ValuePair[uint16, ValueUnsigned[uint16], *ValueUnsigned[uint16]], *ValuePair[uint16, ValueUnsigned[uint16], *ValueUnsigned[uint16]]]
+	// HostnamePair represents a structured combination of hostnames formatted as <hostname>:<hostname>.
+	HostnamePair = CaddyTextUnmarshaler[*PairValue[string], ValuePair[string, ValueString, *ValueString], *ValuePair[string, ValueString, *ValueString]]
 )
 
-type PortPairValue struct {
-	Src, Dst uint16
-	IsUDP    bool
-	Host     net.IP
-}
-
-func (pp *PortPairValue) ToCaddyAddr() caddy.NetworkAddress {
-	var addrStr strings.Builder
-	if pp.IsUDP {
-		addrStr.WriteString("udp/")
-	}
-
-	if !(pp.Host == nil || pp.Host.Equal(net.IPv4zero) || pp.Host.Equal(net.IPv6unspecified)) {
-		addrStr.WriteString(pp.Host.String())
-	}
-	addrStr.WriteRune(':')
-	addrStr.Write(strconv.AppendInt(nil, int64(pp.Src), 10))
-	// The string we built will always be parsable
-	addr, _ := caddy.ParseNetworkAddress(addrStr.String())
-	return addr
+type PairValue[T any] struct {
+	Left, Right T
 }

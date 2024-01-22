@@ -7,6 +7,7 @@ import (
 	"net"
 )
 
+// NetworkStubName is the matcher for the network protocol. The ':' suffix is required.
 const NetworkStubName = "stub:"
 
 func init() {

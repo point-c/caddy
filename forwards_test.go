@@ -22,9 +22,9 @@ func TestForward_Start(t *testing.T) {
 	require.Error(t, f.Start(test_caddy.NewTestNetLookup(t)))
 }
 
-func TestForward_StartStopCleanup(t *testing.T) {
+func TestForward_StartCleanup(t *testing.T) {
 	var f pointc.Forward
-	require.NoError(t, f.Host.UnmarshalText([]byte("foo")))
+	require.NoError(t, f.Hosts.UnmarshalText([]byte("foo:bar")))
 	n := test_caddy.NewTestNetLookup(t)
 	n.LookupFn = func(string) (pointc.Net, bool) { return nil, true }
 	require.NoError(t, f.Start(n))

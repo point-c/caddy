@@ -142,7 +142,7 @@ func TestValuePortPair(t *testing.T) {
 		t.Helper()
 		for _, str := range strs {
 			t.Run(str, func(t *testing.T) {
-				var pp configvalues.ValuePortPair
+				var pp configvalues.ValuePair
 				require.Error(t, pp.UnmarshalText([]byte(str)))
 			})
 		}
@@ -151,11 +151,11 @@ func TestValuePortPair(t *testing.T) {
 	okTest := func(t *testing.T, str string, exp configvalues.PortPairValue) {
 		t.Helper()
 		t.Run(str, func(t *testing.T) {
-			var pp configvalues.ValuePortPair
+			var pp configvalues.ValuePair
 			require.NoError(t, pp.UnmarshalText([]byte(str)))
 			require.Equal(t, exp, *pp.Value())
 			pp.Reset()
-			require.Equal(t, *new(configvalues.ValuePortPair), pp)
+			require.Equal(t, *new(configvalues.ValuePair), pp)
 		})
 	}
 

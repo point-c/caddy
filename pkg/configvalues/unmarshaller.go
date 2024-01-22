@@ -52,7 +52,9 @@ func (c *CaddyTextUnmarshaler[V, T, TP]) UnmarshalText(text []byte) error {
 // It quotes the text if it's not valid JSON.
 func (c CaddyTextUnmarshaler[V, T, TP]) MarshalJSON() (text []byte, err error) {
 	text = []byte(c.original)
-	if !json.Valid(text) {
+	if len(text) == 0 {
+		return []byte("null"), nil
+	} else if !json.Valid(text) {
 		text = []byte(strconv.Quote(string(text)))
 	}
 	return

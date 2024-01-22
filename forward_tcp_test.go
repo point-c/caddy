@@ -83,11 +83,11 @@ func TestForwardTCP_Start(t *testing.T) {
 		port := ln.Addr().(*net.TCPAddr).Port
 		var f pointc.ForwardTCP
 		require.NoError(t, f.Ports.UnmarshalText([]byte(fmt.Sprintf("%d:%d", port, port))))
-		require.Error(t, f.Start(nil))
+		require.Error(t, f.Start(&pointc.ForwardNetworks{Src: testcaddy.NewTestNet(t), Dst: testcaddy.NewTestNet(t)}))
 	})
 }
 
-func TestForwardTCP_ProvisionStartStopCleanup(t *testing.T) {
+func TestForwardTCP_ProvisionStartCleanup(t *testing.T) {
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	require.NoError(t, err)
 	port := ln.Addr().(*net.TCPAddr).Port
@@ -100,36 +100,36 @@ func TestForwardTCP_ProvisionStartStopCleanup(t *testing.T) {
 	require.NotNil(t, v)
 	ftcp, ok := v.(*pointc.ForwardTCP)
 	require.True(t, ok)
-	require.NoError(t, ftcp.Start(testcaddy.NewTestNet(t)))
+	n := testcaddy.NewTestNet(t)
+	n.ListenFn = func(*net.TCPAddr) (net.Listener, error) { return testcaddy.NewTestListener(t), nil }
+	require.NoError(t, ftcp.Start(&pointc.ForwardNetworks{Src: n, Dst: n}))
 }
 
 func TestForwardTCP_UnmarshalCaddyfile(t *testing.T) {
 	t.Run("invalid port pair", func(t *testing.T) {
 		var ftcp pointc.ForwardTCP
-		require.ErrorContains(t, ftcp.UnmarshalCaddyfile(caddyfile.NewTestDispenser(uuid.New().String())), "not a port:port pair")
-	})
-	t.Run("udp port pair", func(t *testing.T) {
-		var ftcp pointc.ForwardTCP
-		require.ErrorContains(t, ftcp.UnmarshalCaddyfile(caddyfile.NewTestDispenser("80:80/udp")), "cannot forward udp packets with tcp forwarder")
+		require.ErrorContains(t, ftcp.UnmarshalCaddyfile(caddyfile.NewTestDispenser(uuid.New().String())), "not a pair value")
 	})
 	t.Run("valid", func(t *testing.T) {
 		var ftcp pointc.ForwardTCP
 		require.NoError(t, ftcp.UnmarshalCaddyfile(caddyfile.NewTestDispenser("80:80")))
-		require.Equal(t, configvalues.PortPairValue{
-			Src:  80,
-			Dst:  80,
-			Host: net.IPv4zero,
+		require.Equal(t, configvalues.PairValue[uint16]{
+			Left: 80, Right: 80,
 		}, *ftcp.Ports.Value())
+	})
+	t.Run("invalid buf size", func(t *testing.T) {
+		var ftcp pointc.ForwardTCP
+		require.Error(t, ftcp.UnmarshalCaddyfile(caddyfile.NewTestDispenser("80:80 a")))
 	})
 	t.Run("no next", func(t *testing.T) {
 		var ftcp pointc.ForwardTCP
 		require.Error(t, ftcp.UnmarshalCaddyfile(caddyfile.NewTestDispenser("tcp")))
 
 	})
-	t.Run("full", func(t *testing.T) {
+	t.Run("no buf size", func(t *testing.T) {
 		b, warn, err := caddyconfig.GetAdapter("caddyfile").Adapt(caddyfile.Format([]byte(`{
 	point-c netops {
-		forward test {
+		forward test:foo {
 			tcp 80:80
 		}
 	}
@@ -141,11 +141,42 @@ func TestForwardTCP_UnmarshalCaddyfile(t *testing.T) {
 				"point-c": map[string]any{
 					"net-ops": []any{
 						map[string]any{
-							"host": "test",
+							"hosts": "test:foo",
 							"forwards": []any{
 								map[string]any{
 									"forward": "tcp",
 									"ports":   "80:80",
+									"buf":     nil,
+								},
+							},
+							"op": "forward",
+						},
+					},
+				},
+			},
+		}, nil)), string(b))
+	})
+	t.Run("full", func(t *testing.T) {
+		b, warn, err := caddyconfig.GetAdapter("caddyfile").Adapt(caddyfile.Format([]byte(`{
+	point-c netops {
+		forward test:foo {
+			tcp 80:80 1234
+		}
+	}
+}`)), nil)
+		require.NoError(t, err)
+		require.Empty(t, warn)
+		require.JSONEq(t, string(caddyconfig.JSON(map[string]any{
+			"apps": map[string]any{
+				"point-c": map[string]any{
+					"net-ops": []any{
+						map[string]any{
+							"hosts": "test:foo",
+							"forwards": []any{
+								map[string]any{
+									"forward": "tcp",
+									"ports":   "80:80",
+									"buf":     1234,
 								},
 							},
 							"op": "forward",
@@ -160,12 +191,12 @@ func TestForwardTCP_UnmarshalCaddyfile(t *testing.T) {
 func TestTcpCopy(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		var buf bytes.Buffer
-		pointc.TcpCopy(func() {}, io.Discard, io.LimitReader(nil, 0), slog.New(slog.NewTextHandler(&buf, nil)))
+		pointc.TcpCopy(func() {}, slog.New(slog.NewTextHandler(&buf, nil)), io.Discard, io.LimitReader(nil, 0), []byte{0})
 		require.Empty(t, buf.Bytes())
 	})
 	t.Run("not ok", func(t *testing.T) {
 		var buf bytes.Buffer
-		pointc.TcpCopy(func() {}, io.Discard, iotest.ErrReader(errors.New("test")), slog.New(slog.NewTextHandler(&buf, nil)))
+		pointc.TcpCopy(func() {}, slog.New(slog.NewTextHandler(&buf, nil)), io.Discard, iotest.ErrReader(errors.New("test")), []byte{0})
 		require.NotEmpty(t, buf.Bytes())
 	})
 }
@@ -229,7 +260,7 @@ func TestStartCopyLoop(t *testing.T) {
 	defer wg.Wait()
 	wg.Go(func() {
 		defer close(out)
-		pointc.StartCopyLoop(in, func(done func(), _ io.Writer, _ io.Reader, _ *slog.Logger) { done(); out <- true })
+		pointc.StartCopyLoop(in, func(done func(), _ *slog.Logger, _ io.Writer, _ io.Reader) { done(); out <- true })
 	})
 
 	newConnPair := func() *pointc.ConnPair {

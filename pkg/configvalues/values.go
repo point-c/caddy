@@ -134,63 +134,28 @@ func (p *ValueProtocol) Value() string {
 
 func (p *ValueProtocol) Reset() { *p = "" }
 
-type ValuePortPair struct {
-	src, dst Port
-	proto    Protocol
-	host     *IP
+type ValuePair[V any, T any, TP valueConstraint[V, T]] struct {
+	left, right CaddyTextUnmarshaler[V, T, TP]
 }
 
-func (pp *ValuePortPair) UnmarshalText(b []byte) error {
-	src, dst, ok := bytes.Cut(b, []byte{':'})
+func (pp *ValuePair[V, T, TP]) UnmarshalText(b []byte) error {
+	left, right, ok := bytes.Cut(b, []byte{':'})
 	if !ok {
-		return errors.New("not a port:port pair")
+		return errors.New("not a pair value")
 	}
-
-	host := src
-	src, dst, ok = bytes.Cut(dst, []byte{':'})
-	if ok {
-		pp.host = new(IP)
-		if err := pp.host.UnmarshalText(host); err != nil {
-			return err
-		}
-	} else {
-		pp.host = nil
-		src, dst = host, src
-	}
-
-	dst, proto, ok := bytes.Cut(dst, []byte{'/'})
-	if ok {
-		if err := pp.proto.UnmarshalText(proto); err != nil {
-			return err
-		}
-	}
-
-	if err := errors.Join(pp.src.UnmarshalText(src), pp.dst.UnmarshalText(dst)); err != nil {
-		return err
-	}
-	return nil
+	return errors.Join(pp.left.UnmarshalText(left), pp.right.UnmarshalText(right))
 }
 
-func (pp *ValuePortPair) Value() *PortPairValue {
-	return &PortPairValue{
-		Src:   pp.src.Value(),
-		Dst:   pp.dst.Value(),
-		IsUDP: pp.proto.Value() == "udp",
-		Host: func() net.IP {
-			if pp.host == nil {
-				return net.IPv4zero
-			}
-			return pp.host.Value()
-		}(),
+func (pp *ValuePair[V, T, TP]) Value() *PairValue[V] {
+	return &PairValue[V]{
+		Left:  pp.left.Value(),
+		Right: pp.right.Value(),
 	}
 }
 
-func (pp *ValuePortPair) Reset() {
-	pp.host = nil
-	pp.proto.original = ""
-	pp.proto.value.Reset()
-	pp.dst.original = ""
-	pp.dst.value.Reset()
-	pp.src.original = ""
-	pp.src.value.Reset()
+func (pp *ValuePair[V, T, TP]) Reset() {
+	for _, e := range []*CaddyTextUnmarshaler[V, T, TP]{&pp.left, &pp.right} {
+		e.original = ""
+		any(&e.value).(Value[V]).Reset()
+	}
 }

@@ -36,7 +36,7 @@ var (
 type (
 	// RegisterFunc registers a unique name to a [Net] tunnel.
 	// Since ip addresses may be arbitrary depending on what the application is doing in the tunnel, names are used as lookup.
-	// This allows helps with configuration, so that users don't need to remember ip addresses.
+	// This also helps with configuration, so that users don't need to remember ip addresses.
 	RegisterFunc func(string, Net) error
 	// Net is a peer in the networking stack. If it has a local address [Net.LocalAddress] should return a non-nil value.
 	Net interface {
@@ -55,10 +55,13 @@ type (
 		// DialPacket dials a remote address with the UDP protocol.
 		DialPacket(*net.UDPAddr) (net.PacketConn, error)
 	}
+	// Network is implemented by modules in the "point-c.net" namespace.
 	Network = lifecycler.LifeCyclable[RegisterFunc]
-	NetOp   = lifecycler.LifeCyclable[NetLookup]
+	// NetOp is implemented by modules in the "point-c.op" namespace.
+	NetOp = lifecycler.LifeCyclable[NetLookup]
 )
 
+// NetLookup is implemented by [Pointc].
 type NetLookup interface {
 	Lookup(string) (Net, bool)
 }
@@ -72,12 +75,12 @@ type Pointc struct {
 	net         map[string]Net
 }
 
-type NetOpApp Pointc
-
+// CaddyModule implements [caddy.Module].
 func (*Pointc) CaddyModule() caddy.ModuleInfo {
 	return caddyreg.Info[Pointc, *Pointc]("point-c")
 }
 
+// DynamicNet allows for the creation of custom networks.
 type DynamicNet struct {
 	ListenFn       func(*net.TCPAddr) (net.Listener, error)
 	ListenPacketFn func(*net.UDPAddr) (net.PacketConn, error)
@@ -103,6 +106,12 @@ func (d *DynamicDialer) DialPacket(a *net.UDPAddr) (net.PacketConn, error) {
 	return d.DialPacketFn(a)
 }
 
+// Register adds a new network to the [Pointc] instance.
+// The 'key' parameter is a unique identifier for the network.
+// This method checks if the network's local address is part of a private network.
+// If it's not a private network address, an error is returned.
+// It also ensures no existing network shares the same local address or key.
+// On success, the network is registered with the [Pointc] instance.
 func (pc *Pointc) Register(key string, n Net) error {
 	if !ipcheck.IsPrivateNetwork(n.LocalAddr()) {
 		return errors.New("address is not private network")
@@ -124,6 +133,7 @@ func (pc *Pointc) Register(key string, n Net) error {
 		ListenPacketFn: n.ListenPacket,
 		DialerFn: func(laddr net.IP, port uint16) Dialer {
 			for _, pcn := range pc.net {
+				// Use the network's address for the dialer if remote clashes with another network.
 				if !n.LocalAddr().Equal(pcn.LocalAddr()) && laddr.Equal(pcn.LocalAddr()) {
 					return n.Dialer(n.LocalAddr(), port)
 				}
@@ -134,6 +144,7 @@ func (pc *Pointc) Register(key string, n Net) error {
 	return nil
 }
 
+// NewSystemNet creates a new network that uses golang's net functions.
 func NewSystemNet() Net {
 	return &DynamicNet{
 		ListenFn:       func(addr *net.TCPAddr) (net.Listener, error) { return net.Listen("tcp", addr.String()) },
@@ -150,6 +161,7 @@ func NewSystemNet() Net {
 	}
 }
 
+// Provision implements [caddy.Provisioner].
 func (pc *Pointc) Provision(ctx caddy.Context) error {
 	pc.net = map[string]Net{"system": NewSystemNet()}
 	pc.ops.SetValue(pc)
@@ -178,8 +190,13 @@ func (pc *Pointc) Provision(ctx caddy.Context) error {
 	return pc.ops.Start()
 }
 
-func (pc *Pointc) Start() error   { return nil }
-func (pc *Pointc) Stop() error    { return nil }
+// Start implements [caddy.App].
+func (pc *Pointc) Start() error { return nil }
+
+// Stop implements [caddy.App].
+func (pc *Pointc) Stop() error { return nil }
+
+// Cleanup implements [caddy.CleanerUpper].
 func (pc *Pointc) Cleanup() error { return errors.Join(pc.lf.Cleanup(), pc.ops.Cleanup()) }
 
 // Lookup gets a [Net] by its declared name.
@@ -191,11 +208,13 @@ func (pc *Pointc) Lookup(name string) (Net, bool) {
 // UnmarshalCaddyfile unmarshals a submodules from a caddyfile.
 // The `netops` modifier causes the modules to be loaded as netops.
 //
-//	{
-//	  point-c [netops] {
-//	    <submodule name> <submodule config>
-//	  }
-//	}
+//	 ```
+//		{
+//		  point-c [netops] {
+//		    <submodule name> <submodule config>
+//		  }
+//		}
+//	 ```
 func (pc *Pointc) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
 		if v := d.Val(); !d.NextArg() && v == "point-c" {

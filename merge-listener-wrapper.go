@@ -23,9 +23,9 @@ var (
 	_ caddyfile.Unmarshaler = (*MergeWrapper)(nil)
 )
 
-// MergeWrapper loads multiple [net.Listener]s and aggregates their [net.Conn]s into a single [net.Listener].
-// It allows caddy to accept connections from multiple sources.
 type (
+	// MergeWrapper loads multiple [net.Listener]s and aggregates their [net.Conn]s into a single [net.Listener].
+	// It allows caddy to accept connections from multiple sources.
 	MergeWrapper struct {
 		// ListenerRaw is a slice of JSON-encoded data representing listener configurations.
 		// These configurations are used to create the actual net.Listener instances.
@@ -44,6 +44,7 @@ type (
 
 		lf lifecycler.LifeCycler[func(net.Listener)]
 	}
+	// ListenerProvider is implemented by modules in the "caddy.listeners.merge" namespace.
 	ListenerProvider lifecycler.LifeCyclable[func(net.Listener)]
 )
 
@@ -119,6 +120,8 @@ func listen(ls net.Listener, conns chan<- net.Conn, done <-chan struct{}, finish
 // Must have at least one listener to aggregate with the wrapped listener.
 // `tls` should come specifically after any `merge` directives.
 //
+// ```
+//
 //	 http caddyfile:
 //		{
 //		  servers :443 {
@@ -130,6 +133,8 @@ func listen(ls net.Listener, conns chan<- net.Conn, done <-chan struct{}, finish
 //		    }
 //		  }
 //		}
+//
+// ```
 func (p *MergeWrapper) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	return p.lf.UnmarshalCaddyfile(d, &lifecycler.CaddyfileInfo{
 		ModuleID:           "caddy.listeners.merge.",

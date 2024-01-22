@@ -29,6 +29,7 @@ type Listener struct {
 	ln   net.Listener
 }
 
+// Provision implements [caddy.Provisioner].
 func (p *Listener) Provision(ctx caddy.Context) error {
 	m, err := ctx.App("point-c")
 	if err != nil {
@@ -47,30 +48,40 @@ func (p *Listener) Provision(ctx caddy.Context) error {
 	return nil
 }
 
+// Accept implements [net.Listener].
 func (p *Listener) Accept() (net.Conn, error) { return p.ln.Accept() }
-func (p *Listener) Close() error              { return p.ln.Close() }
-func (p *Listener) Addr() net.Addr            { return p.ln.Addr() }
 
+// Close implements [net.Listener].
+func (p *Listener) Close() error { return p.ln.Close() }
+
+// Addr implements [net.Listener].
+func (p *Listener) Addr() net.Addr { return p.ln.Addr() }
+
+// CaddyModule implements [caddy.Module].
 func (*Listener) CaddyModule() caddy.ModuleInfo {
 	return caddyreg.Info[Listener, *Listener]("caddy.listeners.merge.point-c")
 }
 
+// Start implement [ListenerProvider].
 func (p *Listener) Start(fn func(net.Listener)) error { fn(p); return nil }
 
 // UnmarshalCaddyfile unmarshals the caddyfile.
+// ```
 //
 //		{
 //		  servers :443 {
 //		    listener_wrappers {
 //		      merge {
-//	         # this is the actual listener definition
+//	            # this is the actual listener definition
 //		        point-c <network name> <port to expose>
 //		      }
-//	       # make sure tls goes after otherwise encryption will be dropped
+//	          # make sure tls goes after otherwise encryption will be dropped
 //		      tls
 //		    }
 //		  }
 //		}
+//
+// ```
 func (p *Listener) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
 		var name, port string

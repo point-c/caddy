@@ -12,6 +12,7 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"sync"
 )
 
 func init() {
@@ -26,26 +27,58 @@ var (
 	_ caddy.CleanerUpper    = (*ForwardTCP)(nil)
 )
 
-type ForwardTCP struct {
-	Ports  configvalues.PortPair `json:"ports"`
-	logger *slog.Logger
-	ctx    context.Context
-	cancel func()
-	wait   func()
-}
+type (
+	// ForwardTCP is able to forward TCP traffic through networks.
+	ForwardTCP struct {
+		Ports   configvalues.PortPair `json:"ports"`
+		BufSize BufSize               `json:"buf"`
+		logger  *slog.Logger
+		ctx     context.Context
+		cancel  func()
+		wait    func()
+	}
+	BufSize = configvalues.CaddyTextUnmarshaler[uint16, configvalues.ValueUnsigned[uint16], *configvalues.ValueUnsigned[uint16]]
+)
 
+// Provision implements [caddy.Provisioner].
 func (f *ForwardTCP) Provision(ctx caddy.Context) error {
 	f.logger = slog.New(zaphandler.New(ctx.Logger()))
 	f.ctx, f.cancel = context.WithCancel(ctx)
 	return nil
 }
 
-func (f *ForwardTCP) Cleanup() error { return f.Stop() }
+// Cleanup implements [caddy.CleanerUpper].
+func (f *ForwardTCP) Cleanup() error {
+	if f.cancel != nil {
+		f.cancel()
+	}
+	if f.wait != nil {
+		f.wait()
+	}
+	f.ctx = nil
+	f.wait = nil
+	f.logger = nil
+	f.cancel = nil
+	return nil
+}
 
+// CaddyModule implements [caddy.Module].
 func (f *ForwardTCP) CaddyModule() caddy.ModuleInfo {
 	return caddyreg.Info[ForwardTCP, *ForwardTCP]("point-c.op.forward.tcp")
 }
 
+// UnmarshalCaddyfile unmarshals the caddyfile.
+// Buffer size is the size of the buffer to use per stream direction.
+// Buffer size will be double the specified amount per connection.
+// ```
+//
+//	point-c netops {
+//	    forward <src network name>:<dst network name> {
+//			    tcp <src port>:<dst port> [buffer size]
+//	    }
+//	}
+//
+// ```
 func (f *ForwardTCP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
 		if d.Val() == "tcp" {
@@ -56,34 +89,57 @@ func (f *ForwardTCP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 
 		if err := f.Ports.UnmarshalCaddyfile(d); err != nil {
 			return err
-		} else if f.Ports.Value().IsUDP {
-			return errors.New("cannot forward udp packets with tcp forwarder")
+		}
+
+		if d.NextArg() {
+			if err := f.BufSize.UnmarshalCaddyfile(d); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
 }
 
-func (f *ForwardTCP) Start(n Net) error {
-	rawLn, err := f.Ports.Value().ToCaddyAddr().Listen(f.ctx, 0, net.ListenConfig{})
+// Start implements [ForwardProto]. It is responsible for starting the forwarding of network traffic.
+func (f *ForwardTCP) Start(n *ForwardNetworks) error {
+	ln, err := n.Src.Listen(&net.TCPAddr{IP: n.Src.LocalAddr(), Port: int(f.Ports.Value().Left)})
 	if err != nil {
 		return err
 	}
-	ln := rawLn.(net.Listener)
 	context.AfterFunc(f.ctx, func() { ln.Close() })
 
 	var wg simplewg.Wg
 	f.wait = wg.Wait
 
+	bufSize := f.BufSize.Value()
+	if bufSize == 0 {
+		bufSize = 4096
+	}
+	copyBufs := sync.Pool{New: func() any { return make([]byte, bufSize) }}
+
 	conns := make(chan net.Conn)
 	wg.Go(func() { ListenLoop(ln, conns) })
 	pairs := make(chan *ConnPair)
-	wg.Go(func() { PrepareConnPairLoop(f.ctx, f.logger, conns, pairs) })
+	var pairsListeners sync.WaitGroup
 	dialed := make(chan *ConnPair)
-	wg.Go(func() { DialRemoteLoop(n, f.Ports.Value().Dst, pairs, dialed) })
-	wg.Go(func() { StartCopyLoop(dialed, TcpCopy) })
+	var dialedListeners sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		pairsListeners.Add(1)
+		dialedListeners.Add(1)
+		wg.Go(func() { defer pairsListeners.Done(); PrepareConnPairLoop(f.ctx, f.logger, conns, pairs) })
+		wg.Go(func() { defer dialedListeners.Done(); DialRemoteLoop(n.Dst, f.Ports.Value().Right, pairs, dialed) })
+		wg.Go(func() {
+			StartCopyLoop(dialed, func(done func(), logger *slog.Logger, dst io.Writer, src io.Reader) {
+				buf := copyBufs.Get().([]byte)
+				defer copyBufs.Put(buf)
+				TcpCopy(done, logger, dst, src, buf)
+			})
+		})
+	}
 	return nil
 }
 
+// ListenLoop accepts connections and sends them to the next operation.
 func ListenLoop(ln net.Listener, conns chan<- net.Conn) {
 	defer close(conns)
 	for {
@@ -95,6 +151,9 @@ func ListenLoop(ln net.Listener, conns chan<- net.Conn) {
 	}
 }
 
+var connPairPool = sync.Pool{New: func() any { return new(ConnPair) }}
+
+// PrepareConnPairLoop initializes the forwarding session.
 func PrepareConnPairLoop(ctx context.Context, logger *slog.Logger, conns <-chan net.Conn, pairs chan<- *ConnPair) {
 	defer close(pairs)
 	for c := range conns {
@@ -102,19 +161,23 @@ func PrepareConnPairLoop(ctx context.Context, logger *slog.Logger, conns <-chan 
 		case <-ctx.Done():
 			c.Close()
 		default:
+			cp := connPairPool.Get().(*ConnPair)
+			cp.Tunnel = nil
+			cp.Logger = logger
 			// Copy c so it can be used in goroutines
-			cp := ConnPair{Logger: logger, Remote: c}
+			cp.Remote = c
 			// Prepare connection specific context
 			cp.Ctx, cp.Cancel = context.WithCancel(ctx)
 			// Prevent leakage?
 			context.AfterFunc(ctx, cp.Cancel)
 			// Close remote connection when context is canceled
 			context.AfterFunc(cp.Ctx, func() { cp.Remote.Close() })
-			pairs <- &cp
+			pairs <- cp
 		}
 	}
 }
 
+// ConnPair helps manage the state of a forwarding session.
 type ConnPair struct {
 	Ctx    context.Context
 	Cancel context.CancelFunc
@@ -123,6 +186,7 @@ type ConnPair struct {
 	Logger *slog.Logger
 }
 
+// DialTunnel does the actual remote dialing.
 func (cp *ConnPair) DialTunnel(n Net, dstPort uint16) bool {
 	// Prepare dialer that will preserve remote ip
 	remote := cp.Remote.RemoteAddr().(*net.TCPAddr).IP
@@ -143,6 +207,7 @@ func (cp *ConnPair) DialTunnel(n Net, dstPort uint16) bool {
 	return true
 }
 
+// DialRemoteLoop is responsible for dialing the receiver.
 func DialRemoteLoop(n Net, dstPort uint16, pairs <-chan *ConnPair, dialed chan<- *ConnPair) {
 	var wg simplewg.Wg
 	// Wait for any senders on pairs to finish before closing
@@ -150,6 +215,7 @@ func DialRemoteLoop(n Net, dstPort uint16, pairs <-chan *ConnPair, dialed chan<-
 	for c := range pairs {
 		select {
 		case <-c.Ctx.Done():
+			connPairPool.Put(c)
 			c.Cancel()
 		default:
 			c := c
@@ -162,38 +228,33 @@ func DialRemoteLoop(n Net, dstPort uint16, pairs <-chan *ConnPair, dialed chan<-
 	}
 }
 
-func StartCopyLoop(pairs <-chan *ConnPair, copyFn func(done func(), dst io.Writer, src io.Reader, logger *slog.Logger)) {
+// StartCopyLoop manages starting the copy for both TCP stream directions.
+func StartCopyLoop(pairs <-chan *ConnPair, copyFn func(done func(), logger *slog.Logger, dst io.Writer, src io.Reader)) {
 	var wg simplewg.Wg
 	defer wg.Wait()
 	for p := range pairs {
 		select {
 		case <-p.Ctx.Done():
+			connPairPool.Put(p)
 			p.Cancel()
 		default:
 			c := p
-			wg.Go(func() { copyFn(c.Cancel, c.Remote, c.Tunnel, c.Logger) })
-			wg.Go(func() { copyFn(c.Cancel, c.Tunnel, c.Remote, c.Logger) })
+			var pwg sync.WaitGroup
+			pwg.Add(2)
+			wg.Go(func() { defer pwg.Done(); copyFn(c.Cancel, c.Logger, c.Remote, c.Tunnel) })
+			wg.Go(func() { defer pwg.Done(); copyFn(c.Cancel, c.Logger, c.Tunnel, c.Remote) })
+			go func() {
+				defer connPairPool.Put(c)
+				pwg.Wait()
+			}()
 		}
 	}
 }
 
-func TcpCopy(done func(), dst io.Writer, src io.Reader, logger *slog.Logger) {
+// TcpCopy is the low level function that does the actual copying of TCP traffic. It only copies the stream in one direction e.g. src->dst or dst->src.
+func TcpCopy(done func(), logger *slog.Logger, dst io.Writer, src io.Reader, buf []byte) {
 	defer done()
-	if _, err := io.Copy(dst, src); err != nil {
+	if _, err := io.CopyBuffer(dst, src, buf); err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, net.ErrClosed) {
 		logger.Error("error copying data between connections", "error", err)
 	}
-}
-
-func (f *ForwardTCP) Stop() error {
-	if f.cancel != nil {
-		f.cancel()
-	}
-	if f.wait != nil {
-		f.wait()
-	}
-	f.ctx = nil
-	f.wait = nil
-	f.logger = nil
-	f.cancel = nil
-	return nil
 }
