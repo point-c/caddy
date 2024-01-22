@@ -21,6 +21,7 @@ import (
 	"sync"
 	"testing"
 	"testing/iotest"
+	"time"
 )
 
 func TestConnPair_DialTunnel(t *testing.T) {
@@ -88,21 +89,43 @@ func TestForwardTCP_Start(t *testing.T) {
 }
 
 func TestForwardTCP_ProvisionStartCleanup(t *testing.T) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	port := ln.Addr().(*net.TCPAddr).Port
-	require.NoError(t, ln.Close())
-
 	ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 	defer cancel()
-	v, err := ctx.LoadModuleByID("point-c.op.forward.tcp", caddyconfig.JSON(map[string]any{"ports": fmt.Sprintf("%d:0", port)}, nil))
+	v, err := ctx.LoadModuleByID("point-c.op.forward.tcp", caddyconfig.JSON(map[string]any{"ports": "80:80"}, nil))
 	require.NoError(t, err)
 	require.NotNil(t, v)
 	ftcp, ok := v.(*pointc.ForwardTCP)
 	require.True(t, ok)
+
+	str1, str2 := "test", "foobar"
+	srcNet := compareNet(t, str1, str2)
+	dstNet := compareNet(t, str2, str1)
+
+	require.NoError(t, ftcp.Start(&pointc.ForwardNetworks{Src: srcNet, Dst: dstNet}))
+	time.Sleep(time.Second * 5)
+}
+
+func compareNet(t *testing.T, readSend, writeExpected string) *testcaddy.TestNet {
+	conn := testcaddy.NewTestConn(t)
+	conn.ReadFn = func(b []byte) (int, error) {
+		conn.ReadFn = func([]byte) (int, error) { return 0, net.ErrClosed }
+		return copy(b, readSend), nil
+	}
+	conn.WriteFn = func(b []byte) (int, error) {
+		conn.WriteFn = func([]byte) (int, error) { return 0, net.ErrClosed }
+		require.Equal(t, writeExpected, string(b[:len(writeExpected)]))
+		return len(writeExpected), nil
+	}
+
+	ln := testcaddy.NewTestListener(t)
+	ln.AcceptFn = func() (net.Conn, error) {
+		ln.AcceptFn = func() (net.Conn, error) { return nil, net.ErrClosed }
+		return conn, nil
+	}
+
 	n := testcaddy.NewTestNet(t)
-	n.ListenFn = func(*net.TCPAddr) (net.Listener, error) { return testcaddy.NewTestListener(t), nil }
-	require.NoError(t, ftcp.Start(&pointc.ForwardNetworks{Src: n, Dst: n}))
+	n.ListenFn = func(*net.TCPAddr) (net.Listener, error) { return ln, nil }
+	return n
 }
 
 func TestForwardTCP_UnmarshalCaddyfile(t *testing.T) {
