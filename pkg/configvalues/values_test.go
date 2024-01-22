@@ -137,25 +137,31 @@ func TestValueUDPAddr(t *testing.T) {
 	})
 }
 
-func TestValuePortPair(t *testing.T) {
+func TestValuePair(t *testing.T) {
+	type testType = configvalues.ValuePair[uint16, configvalues.ValueUnsigned[uint16], *configvalues.ValueUnsigned[uint16]]
 	failTests := func(t *testing.T, strs ...string) {
 		t.Helper()
 		for _, str := range strs {
 			t.Run(str, func(t *testing.T) {
-				var pp configvalues.ValuePair
+				var pp testType
 				require.Error(t, pp.UnmarshalText([]byte(str)))
 			})
 		}
 	}
 
-	okTest := func(t *testing.T, str string, exp configvalues.PortPairValue) {
+	okTest := func(t *testing.T, str string, exp configvalues.PairValue[uint16]) {
 		t.Helper()
 		t.Run(str, func(t *testing.T) {
-			var pp configvalues.ValuePair
-			require.NoError(t, pp.UnmarshalText([]byte(str)))
-			require.Equal(t, exp, *pp.Value())
+			t.Helper()
+			var pp testType
+			if err := pp.UnmarshalText([]byte(str)); err != nil {
+				t.Fatal(err.Error())
+			}
+			if exp != *pp.Value() {
+				t.Fatal("not equal")
+			}
 			pp.Reset()
-			require.Equal(t, *new(configvalues.ValuePair), pp)
+			require.Equal(t, *new(testType), pp)
 		})
 	}
 
@@ -163,54 +169,22 @@ func TestValuePortPair(t *testing.T) {
 		failTests(t, "", "/udp", "0.0.0.0/udp", "0.0.0.0")
 	})
 
-	t.Run("bad host", func(t *testing.T) {
-		failTests(t, "..:1:2")
+	t.Run("bad left", func(t *testing.T) {
+		failTests(t, "..:1")
 	})
 
-	t.Run("bad protocol", func(t *testing.T) {
-		failTests(t, "1:2/foo", "0.0.0.0:1:2/foo")
+	t.Run("bad right", func(t *testing.T) {
+		failTests(t, "1:foo")
 	})
 
 	t.Run("bad src:dst", func(t *testing.T) {
-		failTests(t,
-			"0.0.0.0:a:2/tcp",
-			"0.0.0.0:1:b/tcp",
-			"0.0.0.0:a:b/tcp",
-			"0.0.0.0:a:2",
-			"0.0.0.0:1:b",
-			"0.0.0.0:a:b",
-			"a:2/tcp",
-			"1:b/tcp",
-			"a:b/tcp",
-			"a:2",
-			"1:b",
-			"a:b",
-		)
+		failTests(t, "a:b")
 	})
 
 	t.Run("valid", func(t *testing.T) {
-		okTest(t, "1:2", configvalues.PortPairValue{
-			Src:  1,
-			Dst:  2,
-			Host: net.IPv4zero,
-		})
-		okTest(t, "1:2/udp", configvalues.PortPairValue{
-			Src:   1,
-			Dst:   2,
-			IsUDP: true,
-			Host:  net.IPv4zero,
-		})
-		ip := net.IPv4(1, 2, 3, 4)
-		okTest(t, "1.2.3.4:1:2", configvalues.PortPairValue{
-			Src:  1,
-			Dst:  2,
-			Host: ip,
-		})
-		okTest(t, "1.2.3.4:1:2/udp", configvalues.PortPairValue{
-			Src:   1,
-			Dst:   2,
-			IsUDP: true,
-			Host:  ip,
+		okTest(t, "1:2", configvalues.PairValue[uint16]{
+			Left:  1,
+			Right: 2,
 		})
 	})
 }

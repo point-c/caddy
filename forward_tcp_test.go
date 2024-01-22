@@ -98,20 +98,37 @@ func TestForwardTCP_ProvisionStartCleanup(t *testing.T) {
 	require.True(t, ok)
 
 	str1, str2 := "test", "foobar"
-	srcNet := compareNet(t, str1, str2)
-	dstNet := compareNet(t, str2, str1)
+	srcDone, dstDone := make(chan struct{}), make(chan struct{})
+	srcNet := compareNet(t, str1, str2, srcDone)
+	dstNet := compareNet(t, str2, str1, dstDone)
 
 	require.NoError(t, ftcp.Start(&pointc.ForwardNetworks{Src: srcNet, Dst: dstNet}))
-	time.Sleep(time.Second * 5)
+	select {
+	case <-srcDone:
+		select {
+		case <-dstDone:
+		case <-time.After(time.Second * 5):
+			t.Fatal("timeout")
+		}
+	case <-dstDone:
+		select {
+		case <-srcDone:
+		case <-time.After(time.Second * 5):
+			t.Fatal("timeout")
+		}
+	case <-time.After(time.Second * 5):
+		t.Fatal("timeout")
+	}
 }
 
-func compareNet(t *testing.T, readSend, writeExpected string) *testcaddy.TestNet {
+func compareNet(t *testing.T, readSend, writeExpected string, done chan<- struct{}) *testcaddy.TestNet {
 	conn := testcaddy.NewTestConn(t)
 	conn.ReadFn = func(b []byte) (int, error) {
 		conn.ReadFn = func([]byte) (int, error) { return 0, net.ErrClosed }
 		return copy(b, readSend), nil
 	}
 	conn.WriteFn = func(b []byte) (int, error) {
+		defer close(done)
 		conn.WriteFn = func([]byte) (int, error) { return 0, net.ErrClosed }
 		require.Equal(t, writeExpected, string(b[:len(writeExpected)]))
 		return len(writeExpected), nil
@@ -119,12 +136,25 @@ func compareNet(t *testing.T, readSend, writeExpected string) *testcaddy.TestNet
 
 	ln := testcaddy.NewTestListener(t)
 	ln.AcceptFn = func() (net.Conn, error) {
-		ln.AcceptFn = func() (net.Conn, error) { return nil, net.ErrClosed }
+		ln.AcceptFn = nil
+		return conn, nil
+	}
+
+	dl := testcaddy.NewTestDialer(t)
+	dl.DialFn = func(context.Context, *net.TCPAddr) (net.Conn, error) {
+		dl.DialFn = nil
 		return conn, nil
 	}
 
 	n := testcaddy.NewTestNet(t)
-	n.ListenFn = func(*net.TCPAddr) (net.Listener, error) { return ln, nil }
+	n.ListenFn = func(*net.TCPAddr) (net.Listener, error) {
+		dl.DialFn = nil
+		return ln, nil
+	}
+	n.DialerFn = func(net.IP, uint16) pointc.Dialer {
+		n.ListenFn = nil
+		return dl
+	}
 	return n
 }
 
@@ -268,8 +298,7 @@ func TestPrepareConnPairLoop(t *testing.T) {
 	cancel()
 	in <- testcaddy.NewTestConn(t)
 	close(in)
-	_, ok = <-out
-	require.False(t, ok)
+	wg.Wait()
 }
 
 func TestStartCopyLoop(t *testing.T) {
@@ -326,7 +355,6 @@ func TestDialRemoteLoop(t *testing.T) {
 	out := make(chan *pointc.ConnPair)
 
 	var wg simplewg.Wg
-	defer wg.Wait()
 	dialerFn := make(chan pointc.Dialer)
 	n := testcaddy.NewTestNet(t)
 	n.DialerFn = func(net.IP, uint16) pointc.Dialer { t.Helper(); return <-dialerFn }
@@ -337,17 +365,27 @@ func TestDialRemoteLoop(t *testing.T) {
 		defer closeInOnce()
 		pointc.DialRemoteLoop(n, 0, in, out)
 	})
+	go func() {
+		defer close(out)
+		wg.Wait()
+	}()
 
 	{
 		ctx, cancel := context.WithCancel(ctx)
 		cancel()
 		var cancelled bool
+		done := make(chan struct{})
 		in <- &pointc.ConnPair{
 			Ctx:    ctx,
-			Cancel: func() { cancelled = true },
+			Cancel: func() { defer close(done); cancelled = true },
 			Remote: testcaddy.NewTestConn(t),
 		}
-		require.True(t, cancelled)
+		select {
+		case <-time.After(time.Second * 5):
+			t.Fatal("timeout")
+		case <-done:
+			require.True(t, cancelled)
+		}
 	}
 
 	{

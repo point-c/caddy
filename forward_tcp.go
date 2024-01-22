@@ -136,6 +136,15 @@ func (f *ForwardTCP) Start(n *ForwardNetworks) error {
 			})
 		})
 	}
+
+	go func() {
+		defer close(pairs)
+		pairsListeners.Wait()
+	}()
+	go func() {
+		defer close(dialed)
+		dialedListeners.Wait()
+	}()
 	return nil
 }
 
@@ -155,7 +164,6 @@ var connPairPool = sync.Pool{New: func() any { return new(ConnPair) }}
 
 // PrepareConnPairLoop initializes the forwarding session.
 func PrepareConnPairLoop(ctx context.Context, logger *slog.Logger, conns <-chan net.Conn, pairs chan<- *ConnPair) {
-	defer close(pairs)
 	for c := range conns {
 		select {
 		case <-ctx.Done():
@@ -210,8 +218,8 @@ func (cp *ConnPair) DialTunnel(n Net, dstPort uint16) bool {
 // DialRemoteLoop is responsible for dialing the receiver.
 func DialRemoteLoop(n Net, dstPort uint16, pairs <-chan *ConnPair, dialed chan<- *ConnPair) {
 	var wg simplewg.Wg
-	// Wait for any senders on pairs to finish before closing
-	defer func() { defer wg.Wait(); close(dialed) }()
+	// Wait for any senders on pairs to finish
+	defer wg.Wait()
 	for c := range pairs {
 		select {
 		case <-c.Ctx.Done():

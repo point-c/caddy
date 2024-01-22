@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"golang.org/x/exp/constraints"
 	"net"
-	"slices"
 	"strconv"
 	"unsafe"
 )
@@ -115,25 +113,6 @@ func (ip *ValueIP) Value() net.IP {
 
 func (ip *ValueIP) Reset() { *ip = nil }
 
-type ValueProtocol string
-
-func (p *ValueProtocol) UnmarshalText(text []byte) error {
-	if !slices.Contains([]string{"tcp", "udp"}, string(text)) {
-		return fmt.Errorf("unrecognized protocol %q", text)
-	}
-	*p = ValueProtocol(text)
-	return nil
-}
-
-func (p *ValueProtocol) Value() string {
-	if *p == "" {
-		return "tcp"
-	}
-	return string(*p)
-}
-
-func (p *ValueProtocol) Reset() { *p = "" }
-
 type ValuePair[V any, T any, TP valueConstraint[V, T]] struct {
 	left, right CaddyTextUnmarshaler[V, T, TP]
 }
@@ -155,7 +134,6 @@ func (pp *ValuePair[V, T, TP]) Value() *PairValue[V] {
 
 func (pp *ValuePair[V, T, TP]) Reset() {
 	for _, e := range []*CaddyTextUnmarshaler[V, T, TP]{&pp.left, &pp.right} {
-		e.original = ""
-		any(&e.value).(Value[V]).Reset()
+		*e = CaddyTextUnmarshaler[V, T, TP]{}
 	}
 }

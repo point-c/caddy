@@ -26,6 +26,7 @@ type (
 	// It stores the unmarshaled value and the original text representation.
 	CaddyTextUnmarshaler[V, T any, TP valueConstraint[V, T]] struct {
 		value    T
+		set      bool
 		original string
 	}
 )
@@ -43,16 +44,22 @@ var caddyReplacer = sync.OnceValue(caddy.NewReplacer)
 // The value and the stored text are reset when this is called, even if unmarshalling fails.
 func (c *CaddyTextUnmarshaler[V, T, TP]) UnmarshalText(text []byte) error {
 	c.original = string(text)
-	any(&c.value).(Value[V]).Reset()
+	v := any(&c.value).(Value[V])
+	v.Reset()
 	text = []byte(caddyReplacer().ReplaceAll(c.original, ""))
-	return any(&c.value).(encoding.TextUnmarshaler).UnmarshalText(text)
+	err := any(&c.value).(encoding.TextUnmarshaler).UnmarshalText(text)
+	c.set = err == nil
+	if !c.set {
+		v.Reset()
+	}
+	return err
 }
 
 // MarshalJSON marshals the [CaddyTextUnmarshaler] into JSON.
 // It quotes the text if it's not valid JSON.
 func (c CaddyTextUnmarshaler[V, T, TP]) MarshalJSON() (text []byte, err error) {
 	text = []byte(c.original)
-	if len(text) == 0 {
+	if !c.set {
 		return []byte("null"), nil
 	} else if !json.Valid(text) {
 		text = []byte(strconv.Quote(string(text)))
@@ -63,7 +70,11 @@ func (c CaddyTextUnmarshaler[V, T, TP]) MarshalJSON() (text []byte, err error) {
 // UnmarshalJSON unmarshals JSON into the [CaddyTextUnmarshaler]'s value.
 // It handles JSON strings and unmarshals them as text.
 func (c *CaddyTextUnmarshaler[V, T, TP]) UnmarshalJSON(text []byte) error {
-	if s := ""; json.Unmarshal(text, &s) == nil {
+	if string(text) == "null" {
+		any(&c.value).(Value[V]).Reset()
+		c.original = "null"
+		return nil
+	} else if s := ""; json.Unmarshal(text, &s) == nil {
 		text = []byte(s)
 	}
 	return c.UnmarshalText(text)
