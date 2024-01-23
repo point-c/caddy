@@ -11,43 +11,12 @@ import (
 	"github.com/google/uuid"
 	pointc "github.com/point-c/caddy"
 	test_caddy "github.com/point-c/caddy/pkg/test-caddy"
-	"github.com/point-c/simplewg"
 	"github.com/stretchr/testify/require"
-	"io"
 	"net"
 	"testing"
-	"time"
 )
 
 func TestPointc_Register(t *testing.T) {
-	t.Run("not private network", func(t *testing.T) {
-		var pc pointc.Pointc
-		n := test_caddy.NewTestNet(t)
-		n.LocalAddrFn = func() net.IP { return net.IPv4(1, 1, 1, 1) }
-		require.ErrorContains(t, pc.Register("", n), "address is not private network")
-	})
-
-	t.Run("ip address collision", func(t *testing.T) {
-		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
-		defer cancel()
-		testNet1 := test_caddy.NewTestNetwork(t)
-		testNet1.Register()
-		testNet1.StartFn = func(fn pointc.RegisterFunc) error {
-			n := test_caddy.NewTestNet(t)
-			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 1) }
-			return fn("test1", n)
-		}
-		testNet2 := test_caddy.NewTestNetwork(t)
-		testNet2.Register()
-		testNet2.StartFn = func(fn pointc.RegisterFunc) error {
-			n := test_caddy.NewTestNet(t)
-			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 1) }
-			return fn("test2", n)
-		}
-		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "`+testNet1.ID+`"}, {"type": "`+testNet2.ID+`"}]}`))
-		require.ErrorContains(t, err, "share same address")
-	})
-
 	t.Run("network exists", func(t *testing.T) {
 		ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 		defer cancel()
@@ -66,7 +35,7 @@ func TestPointc_Register(t *testing.T) {
 			return fn("test1", n)
 		}
 		_, err := ctx.LoadModuleByID("point-c", json.RawMessage(`{"networks": [{"type": "`+testNet1.ID+`"}, {"type": "`+testNet2.ID+`"}]}`))
-		require.ErrorContains(t, err, "share same address")
+		require.Error(t, err)
 	})
 }
 
@@ -119,7 +88,7 @@ func TestPointcNet_Listen(t *testing.T) {
 		t.Run("local net", func(t *testing.T) {
 			defer func() { testN.DialerFn = nil }()
 			testN.DialerFn = func(ip net.IP, _ uint16) pointc.Dialer {
-				require.True(t, net.IPv4(192, 168, 0, 1).Equal(ip))
+				require.True(t, net.IPv4(192, 168, 0, 2).Equal(ip))
 				return nil
 			}
 			n.Dialer(net.IPv4(192, 168, 0, 2), 0)
@@ -495,56 +464,5 @@ netop {
 		defer cancel()
 		_, err := ctx.LoadModuleByID("point-c", b)
 		require.NoError(t, err)
-	})
-}
-
-func TestSystemNet(t *testing.T) {
-	n := pointc.NewSystemNet()
-	d := n.Dialer(net.IPv4zero, 0)
-	t.Run("tcp", func(t *testing.T) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
-		defer cancel()
-		var w simplewg.Wg
-		ln, err := n.Listen(&net.TCPAddr{})
-		require.NoError(t, err)
-		closed := make(chan struct{})
-		w.Go(func() {
-			defer cancel()
-			cn, err := ln.Accept()
-			require.NoError(t, err)
-			require.NoError(t, cn.Close())
-			close(closed)
-			_, err = ln.Accept()
-			require.Error(t, err)
-		})
-		w.Go(func() {
-			cn, err := d.Dial(ctx, ln.Addr().(*net.TCPAddr))
-			require.NoError(t, err)
-			<-closed
-			require.NoError(t, cn.Close())
-			require.NoError(t, ln.Close())
-		})
-		w.Wait()
-	})
-	t.Run("udp", func(t *testing.T) {
-		var w simplewg.Wg
-		ln, err := n.ListenPacket(&net.UDPAddr{})
-		require.NoError(t, err)
-		closed := make(chan struct{})
-		w.Go(func() {
-			_, _, err := ln.ReadFrom([]byte{})
-			require.NoError(t, err)
-			close(closed)
-		})
-		w.Go(func() {
-			cn, err := d.DialPacket(ln.LocalAddr().(*net.UDPAddr))
-			require.NoError(t, err)
-			_, err = cn.(io.Writer).Write([]byte{})
-			require.NoError(t, err)
-			<-closed
-			require.NoError(t, cn.Close())
-			require.NoError(t, ln.Close())
-		})
-		w.Wait()
 	})
 }

@@ -11,7 +11,6 @@ import (
 	"github.com/point-c/caddy/pkg/caddyreg"
 	"github.com/point-c/caddy/pkg/configvalues"
 	"github.com/point-c/caddy/pkg/lifecycler"
-	"github.com/point-c/ipcheck"
 	"net"
 )
 
@@ -80,90 +79,20 @@ func (*Pointc) CaddyModule() caddy.ModuleInfo {
 	return caddyreg.Info[Pointc, *Pointc]("point-c")
 }
 
-// DynamicNet allows for the creation of custom networks.
-type DynamicNet struct {
-	ListenFn       func(*net.TCPAddr) (net.Listener, error)
-	ListenPacketFn func(*net.UDPAddr) (net.PacketConn, error)
-	DialerFn       func(laddr net.IP, port uint16) Dialer
-	LocalAddrFn    func() net.IP
-}
-
-func (d *DynamicNet) LocalAddr() net.IP                                   { return d.LocalAddrFn() }
-func (d *DynamicNet) Dialer(a net.IP, p uint16) Dialer                    { return d.DialerFn(a, p) }
-func (d *DynamicNet) Listen(a *net.TCPAddr) (net.Listener, error)         { return d.ListenFn(a) }
-func (d *DynamicNet) ListenPacket(a *net.UDPAddr) (net.PacketConn, error) { return d.ListenPacketFn(a) }
-
-type DynamicDialer struct {
-	DialFn       func(ctx context.Context, addr *net.TCPAddr) (net.Conn, error)
-	DialPacketFn func(addr *net.UDPAddr) (net.PacketConn, error)
-}
-
-func (d *DynamicDialer) Dial(c context.Context, a *net.TCPAddr) (net.Conn, error) {
-	return d.DialFn(c, a)
-}
-
-func (d *DynamicDialer) DialPacket(a *net.UDPAddr) (net.PacketConn, error) {
-	return d.DialPacketFn(a)
-}
-
 // Register adds a new network to the [Pointc] instance.
 // The 'key' parameter is a unique identifier for the network.
-// This method checks if the network's local address is part of a private network.
-// If it's not a private network address, an error is returned.
-// It also ensures no existing network shares the same local address or key.
 // On success, the network is registered with the [Pointc] instance.
 func (pc *Pointc) Register(key string, n Net) error {
-	if !ipcheck.IsPrivateNetwork(n.LocalAddr()) {
-		return errors.New("address is not private network")
-	}
-
-	for name, nv := range pc.net {
-		if nv.LocalAddr().Equal(n.LocalAddr()) {
-			return fmt.Errorf("network %q and %q share same address %s", name, key, nv.LocalAddr().String())
-		}
-	}
-
 	if _, ok := pc.net[key]; ok {
 		return fmt.Errorf("network %q already exists", key)
 	}
-
-	pc.net[key] = &DynamicNet{
-		LocalAddrFn:    n.LocalAddr,
-		ListenFn:       n.Listen,
-		ListenPacketFn: n.ListenPacket,
-		DialerFn: func(laddr net.IP, port uint16) Dialer {
-			for _, pcn := range pc.net {
-				// Use the network's address for the dialer if remote clashes with another network.
-				if !n.LocalAddr().Equal(pcn.LocalAddr()) && laddr.Equal(pcn.LocalAddr()) {
-					return n.Dialer(n.LocalAddr(), port)
-				}
-			}
-			return n.Dialer(laddr, port)
-		},
-	}
+	pc.net[key] = n
 	return nil
-}
-
-// NewSystemNet creates a new network that uses golang's net functions.
-func NewSystemNet() Net {
-	return &DynamicNet{
-		ListenFn:       func(addr *net.TCPAddr) (net.Listener, error) { return net.Listen("tcp", addr.String()) },
-		ListenPacketFn: func(addr *net.UDPAddr) (net.PacketConn, error) { return net.ListenPacket("udp", addr.String()) },
-		DialerFn: func(laddr net.IP, port uint16) Dialer {
-			return &DynamicDialer{
-				DialFn: func(c context.Context, a *net.TCPAddr) (net.Conn, error) {
-					return new(net.Dialer).DialContext(c, "tcp", a.String())
-				},
-				DialPacketFn: func(a *net.UDPAddr) (net.PacketConn, error) { return net.DialUDP("udp", nil, a) },
-			}
-		},
-		LocalAddrFn: func() net.IP { return net.IPv4zero },
-	}
 }
 
 // Provision implements [caddy.Provisioner].
 func (pc *Pointc) Provision(ctx caddy.Context) error {
-	pc.net = map[string]Net{"system": NewSystemNet()}
+	pc.net = map[string]Net{}
 	pc.ops.SetValue(pc)
 	pc.lf.SetValue(pc.Register)
 

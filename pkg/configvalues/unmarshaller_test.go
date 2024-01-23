@@ -54,6 +54,14 @@ func TestCaddyTextUnmarshaler_UnmarshalJSON(t *testing.T) {
 		require.NoError(t, err)
 		require.Exactly(t, text, string(b))
 	})
+	t.Run("null", func(t *testing.T) {
+		var v configvalues.CaddyTextUnmarshaler[string, configvalues.ValueString, *configvalues.ValueString]
+		require.NoError(t, v.UnmarshalJSON([]byte("null")))
+		require.Equal(t, "", v.Value())
+		b, err := v.MarshalJSON()
+		require.NoError(t, err)
+		require.JSONEq(t, "null", string(b))
+	})
 }
 
 func TestCaddyTextUnmarshaler_UnmarshalCaddyfile(t *testing.T) {
