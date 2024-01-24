@@ -114,19 +114,6 @@ func TestCaddyListen(t *testing.T) {
 	})
 }
 
-func TestSysnet_Validate(t *testing.T) {
-	t.Run("addr undefined", func(t *testing.T) {
-		var sn pointc.Sysnet
-		require.NoError(t, sn.Addr.UnmarshalText([]byte("0.0.0.0")))
-		require.NoError(t, sn.Validate())
-	})
-	t.Run("not a system address", func(t *testing.T) {
-		var sn pointc.Sysnet
-		require.NoError(t, sn.Addr.UnmarshalText([]byte("255.255.255.255")))
-		require.ErrorContains(t, sn.Validate(), "not an address associated with this system")
-	})
-}
-
 func TestSysnet_UnmarshalCaddyfile(t *testing.T) {
 	t.Run("nothing", func(t *testing.T) {
 		require.NoError(t, new(pointc.Sysnet).UnmarshalCaddyfile(caddyfile.NewTestDispenser("")))

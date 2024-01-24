@@ -28,9 +28,72 @@ To install `point-c`, you will need to build a custom Caddy binary that includes
 
 ### Caddyfile
 
+```Caddyfile
+{
+   default_bind stub://0.0.0.0
+   point-c {
+      <submodule name> <submodule config>
+      system sys 0.0.0.0
+   }
+   point-c netops {
+      <submodule name> <submodule config>
+      forward sys:sys {
+         <submodule name> <submodule config>
+         tcp 80:8080 1024
+      }
+   }
+   servers :80 {
+      listener_wrappers {
+         merge {
+            <submodule name> <submodule config>
+            point-c sys 8080
+         }
+      }
+   }
+}
+
+:80 {
+   log
+}
+```
+
 ### JSON Configuration
 
-## Usage
+```json5
+{
+  "apps": {
+    "http": {
+      "servers": {
+        "srv0": {
+          "listen": ["stub://0.0.0.0:80"]
+        }
+      }
+    },
+    "point-c": {
+      "networks": [
+        {
+          "addr": "0.0.0.0",
+          "hostname": "sys",
+          "type": "system"
+        }
+      ],
+      "net-ops": [
+        {
+          "forwards": [
+            {
+              "buf": null,
+              "forward": "tcp",
+              "ports": "80:8080"
+            }
+          ],
+          "hosts": "sys:sys",
+          "op": "forward"
+        }
+      ]
+    }
+  }
+}
+```
 
 ## Testing
 

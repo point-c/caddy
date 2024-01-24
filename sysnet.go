@@ -14,7 +14,6 @@ import (
 var (
 	_ caddy.Module          = (*Sysnet)(nil)
 	_ caddy.Provisioner     = (*Sysnet)(nil)
-	_ caddy.Validator       = (*Sysnet)(nil)
 	_ caddy.CleanerUpper    = (*Sysnet)(nil)
 	_ caddyfile.Unmarshaler = (*Sysnet)(nil)
 	_ Network               = (*Sysnet)(nil)
@@ -35,24 +34,6 @@ type Sysnet struct {
 func (s *Sysnet) Provision(c caddy.Context) error {
 	s.ctx, s.cancel = context.WithCancel(c)
 	return nil
-}
-
-// Validate implements [caddy.Validator].
-// It ensures that the address is either unspecified (0.0.0.0) or a valid address for this system.
-func (s *Sysnet) Validate() error {
-	ip := s.Addr.Value()
-	if net.IPv4zero.Equal(ip) {
-		return nil
-	}
-
-	addrs, err := net.InterfaceAddrs()
-	for _, addr := range addrs {
-		a, ok := addr.(*net.IPNet)
-		if ok && a.Contains(ip) {
-			return nil
-		}
-	}
-	return errors.Join(err, errors.New("not an address associated with this system"))
 }
 
 // Cleanup implements [caddy.CleanerUpper].
