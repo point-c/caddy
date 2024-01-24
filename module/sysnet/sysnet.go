@@ -1,10 +1,11 @@
-package point_c
+package sysnet
 
 import (
 	"context"
 	"errors"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/point-c/caddy/module/point-c"
 	"github.com/point-c/caddy/pkg/caddyreg"
 	"github.com/point-c/caddy/pkg/configvalues"
 	"io"
@@ -16,8 +17,8 @@ var (
 	_ caddy.Provisioner     = (*Sysnet)(nil)
 	_ caddy.CleanerUpper    = (*Sysnet)(nil)
 	_ caddyfile.Unmarshaler = (*Sysnet)(nil)
-	_ Network               = (*Sysnet)(nil)
-	_ Net                   = (*Sysnet)(nil)
+	_ point_c.Network       = (*Sysnet)(nil)
+	_ point_c.Net           = (*Sysnet)(nil)
 )
 
 func init() { caddyreg.R[*Sysnet]() }
@@ -43,7 +44,7 @@ func (s *Sysnet) Cleanup() error { s.cancel(); return nil }
 func (s *Sysnet) LocalAddr() net.IP { return s.Addr.Value() }
 
 // Start implements [Network]. Is registers this module with the given hostname.
-func (s *Sysnet) Start(fn RegisterFunc) error { return fn(s.Hostname.Value(), s) }
+func (s *Sysnet) Start(fn point_c.RegisterFunc) error { return fn(s.Hostname.Value(), s) }
 
 // CaddyModule implements [caddy.Module].
 func (s *Sysnet) CaddyModule() caddy.ModuleInfo {
@@ -111,7 +112,7 @@ type SysDialer struct {
 }
 
 // Dialer returns a [SysDialer] ready to dial on the given address and port.
-func (s *Sysnet) Dialer(ip net.IP, port uint16) Dialer {
+func (s *Sysnet) Dialer(ip net.IP, port uint16) point_c.Dialer {
 	return &SysDialer{ctx: s.ctx, local: ip, port: port}
 }
 

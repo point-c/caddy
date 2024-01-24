@@ -1,7 +1,8 @@
-package test_caddy
+package test_caddy_test
 
 import (
-	pointc "github.com/point-c/caddy"
+	pointc "github.com/point-c/caddy/module/point-c"
+	. "github.com/point-c/caddy/pkg/test-caddy"
 	"github.com/stretchr/testify/require"
 	"net"
 	"testing"

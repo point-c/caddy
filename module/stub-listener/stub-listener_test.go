@@ -1,11 +1,10 @@
-package point_c_test
+package stub_listener
 
 import (
 	"context"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	_ "github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
-	"github.com/point-c/caddy"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net"
@@ -15,7 +14,7 @@ import (
 
 func TestStubListener(t *testing.T) {
 	t.Run("call", func(t *testing.T) {
-		ln, err := point_c.StubListener(context.TODO(), "", "test", net.ListenConfig{})
+		ln, err := StubListener(context.TODO(), "", "test", net.ListenConfig{})
 		if err != nil {
 			t.Fail()
 			return
@@ -37,7 +36,7 @@ func TestStubListener(t *testing.T) {
 }
 
 func TestStubAddr(t *testing.T) {
-	ln, err := point_c.StubListener(context.TODO(), "", "test", net.ListenConfig{})
+	ln, err := StubListener(context.TODO(), "", "test", net.ListenConfig{})
 	if err != nil {
 		t.Fail()
 		return

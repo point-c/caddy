@@ -1,4 +1,4 @@
-package point_c
+package stub_listener
 
 import (
 	"context"

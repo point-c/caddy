@@ -1,4 +1,4 @@
-package point_c_test
+package listener
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/google/uuid"
-	pointc "github.com/point-c/caddy"
+	"github.com/point-c/caddy/module/point-c"
 	test_caddy "github.com/point-c/caddy/pkg/test-caddy"
 	"github.com/stretchr/testify/require"
 	"net"
@@ -46,7 +46,7 @@ func TestListener_UnmarshalCaddyfile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var pc pointc.Listener
+			var pc Listener
 			if err := pc.UnmarshalCaddyfile(caddyfile.NewTestDispenser(tt.caddyfile)); tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -89,7 +89,7 @@ func TestListener_Provision(t *testing.T) {
 		tn.Register()
 		tn.UnmarshalJSONFn = func([]byte) error { return nil }
 		errExp := errors.New("test err " + uuid.New().String())
-		tn.StartFn = func(fn pointc.RegisterFunc) error {
+		tn.StartFn = func(fn point_c.RegisterFunc) error {
 			n := test_caddy.NewTestNet(t)
 			n.ListenFn = func(*net.TCPAddr) (net.Listener, error) { return nil, errExp }
 			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 0) }
@@ -114,7 +114,7 @@ func TestListener_Provision(t *testing.T) {
 		tn := test_caddy.NewTestNetwork(t)
 		tn.Register()
 		tl := test_caddy.NewTestListener(t)
-		tn.StartFn = func(fn pointc.RegisterFunc) error {
+		tn.StartFn = func(fn point_c.RegisterFunc) error {
 			n := test_caddy.NewTestNet(t)
 			n.ListenFn = func(*net.TCPAddr) (net.Listener, error) { return tl, nil }
 			n.LocalAddrFn = func() net.IP { return net.IPv4(192, 168, 0, 0) }
@@ -129,8 +129,8 @@ func TestListener_Provision(t *testing.T) {
 		defer cancel()
 		pcr, err := ctx.App("point-c")
 		require.NoError(t, err)
-		require.IsType(t, new(pointc.Pointc), pcr)
-		pc := pcr.(*pointc.Pointc)
+		require.IsType(t, new(point_c.Pointc), pcr)
+		pc := pcr.(*point_c.Pointc)
 		require.NoError(t, pc.Start())
 		defer func() { require.NoError(t, pc.Stop()) }()
 
@@ -148,7 +148,7 @@ func TestListener_Provision(t *testing.T) {
 }
 
 func TestListener_Start(t *testing.T) {
-	var l pointc.Listener
+	var l Listener
 	require.NoError(t, l.Start(func(ln net.Listener) {
 		require.Equal(t, &l, ln)
 	}))

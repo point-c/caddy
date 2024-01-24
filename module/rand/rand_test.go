@@ -1,4 +1,4 @@
-package caddy_randhandler
+package rand
 
 import (
 	"context"

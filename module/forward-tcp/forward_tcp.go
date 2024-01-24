@@ -1,10 +1,12 @@
-package point_c
+package forward_tcp
 
 import (
 	"context"
 	"errors"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/point-c/caddy/module/forward"
+	"github.com/point-c/caddy/module/point-c"
 	"github.com/point-c/caddy/pkg/caddyreg"
 	"github.com/point-c/caddy/pkg/configvalues"
 	"github.com/point-c/simplewg"
@@ -20,7 +22,7 @@ func init() {
 }
 
 var (
-	_ ForwardProto          = (*ForwardTCP)(nil)
+	_ forward.ForwardProto  = (*ForwardTCP)(nil)
 	_ caddy.Module          = (*ForwardTCP)(nil)
 	_ caddyfile.Unmarshaler = (*ForwardTCP)(nil)
 	_ caddy.Provisioner     = (*ForwardTCP)(nil)
@@ -101,7 +103,7 @@ func (f *ForwardTCP) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 }
 
 // Start implements [ForwardProto]. It is responsible for starting the forwarding of network traffic.
-func (f *ForwardTCP) Start(n *ForwardNetworks) error {
+func (f *ForwardTCP) Start(n *forward.ForwardNetworks) error {
 	ln, err := n.Src.Listen(&net.TCPAddr{IP: n.Src.LocalAddr(), Port: int(f.Ports.Value().Left)})
 	if err != nil {
 		return err
@@ -195,7 +197,7 @@ type ConnPair struct {
 }
 
 // DialTunnel does the actual remote dialing.
-func (cp *ConnPair) DialTunnel(n Net, dstPort uint16) bool {
+func (cp *ConnPair) DialTunnel(n point_c.Net, dstPort uint16) bool {
 	// Prepare dialer that will preserve remote ip
 	remote := cp.Remote.RemoteAddr().(*net.TCPAddr).IP
 	d := n.Dialer(remote, 0)
@@ -216,7 +218,7 @@ func (cp *ConnPair) DialTunnel(n Net, dstPort uint16) bool {
 }
 
 // DialRemoteLoop is responsible for dialing the receiver.
-func DialRemoteLoop(n Net, dstPort uint16, pairs <-chan *ConnPair, dialed chan<- *ConnPair) {
+func DialRemoteLoop(n point_c.Net, dstPort uint16, pairs <-chan *ConnPair, dialed chan<- *ConnPair) {
 	var wg simplewg.Wg
 	// Wait for any senders on pairs to finish
 	defer wg.Wait()

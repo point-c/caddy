@@ -1,10 +1,12 @@
-package point_c
+package listener
 
 import (
 	"errors"
 	"fmt"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/point-c/caddy/module/merge-listener-wrapper"
+	point_c2 "github.com/point-c/caddy/module/point-c"
 	"github.com/point-c/caddy/pkg/caddyreg"
 	"github.com/point-c/caddy/pkg/configvalues"
 	"net"
@@ -15,11 +17,11 @@ func init() {
 }
 
 var (
-	_ caddy.Provisioner     = (*Listener)(nil)
-	_ net.Listener          = (*Listener)(nil)
-	_ caddy.Module          = (*Listener)(nil)
-	_ caddyfile.Unmarshaler = (*Listener)(nil)
-	_ ListenerProvider      = (*Listener)(nil)
+	_ caddy.Provisioner                       = (*Listener)(nil)
+	_ net.Listener                            = (*Listener)(nil)
+	_ caddy.Module                            = (*Listener)(nil)
+	_ caddyfile.Unmarshaler                   = (*Listener)(nil)
+	_ merge_listener_wrapper.ListenerProvider = (*Listener)(nil)
 )
 
 // Listener allows a caddy server to listen on a point-c network.
@@ -35,7 +37,7 @@ func (p *Listener) Provision(ctx caddy.Context) error {
 	if err != nil {
 		return err
 	}
-	n, ok := m.(NetLookup).Lookup(p.Name.Value())
+	n, ok := m.(point_c2.NetLookup).Lookup(p.Name.Value())
 	if !ok {
 		return fmt.Errorf("point-c net %q does not exist", p.Name.Value())
 	}

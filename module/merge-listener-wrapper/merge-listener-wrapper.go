@@ -1,4 +1,4 @@
-package point_c
+package merge_listener_wrapper
 
 import (
 	"encoding/json"

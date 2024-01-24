@@ -1,4 +1,4 @@
-package test_caddy
+package test_caddy_test
 
 import (
 	"context"
@@ -6,7 +6,7 @@ import (
 	"errors"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
-	"github.com/google/uuid"
+	. "github.com/point-c/caddy/pkg/test-caddy"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -19,8 +19,10 @@ func TestNewCaddyContext(t *testing.T) {
 }
 
 func TestRegister(t *testing.T) {
-	module := &TestModule[int]{t: t, Module: caddy.ModuleID(uuid.NewString())}
-	module.Register()
+	var tm TestModule[any]
+	ptm := &tm
+	NewTestModule[any, *TestModule[any]](t, &ptm, func(*TestModule[any]) *TestModule[any] { return &tm }, "")
+	tm.Register()
 }
 
 func TestNewTestModule(t *testing.T) {

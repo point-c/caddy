@@ -1,7 +1,7 @@
 package test_caddy
 
 import (
-	pointc "github.com/point-c/caddy"
+	pointc "github.com/point-c/caddy/module/point-c"
 	"testing"
 )
 

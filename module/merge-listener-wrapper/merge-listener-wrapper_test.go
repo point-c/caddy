@@ -1,4 +1,4 @@
-package point_c_test
+package merge_listener_wrapper
 
 import (
 	"context"
@@ -9,7 +9,6 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	_ "github.com/caddyserver/caddy/v2/caddyconfig/httpcaddyfile"
 	_ "github.com/caddyserver/caddy/v2/modules/standard"
-	point_c "github.com/point-c/caddy"
 	test_caddy "github.com/point-c/caddy/pkg/test-caddy"
 	"github.com/point-c/simplewg"
 	"github.com/stretchr/testify/require"
@@ -201,7 +200,7 @@ func TestMergeWrapper_Cleanup(t *testing.T) {
 		v, err := ctx.LoadModuleByID("caddy.listeners.merge", generateMergedJSON(t, ln))
 		require.NoError(t, err)
 		cancel()
-		require.Equal(t, &point_c.MergeWrapper{}, v.(*point_c.MergeWrapper))
+		require.Equal(t, &MergeWrapper{}, v.(*MergeWrapper))
 	})
 }
 
@@ -280,7 +279,7 @@ func TestMergeWrapper_UnmarshalCaddyfile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var pc point_c.MergeWrapper
+			var pc MergeWrapper
 			if err := pc.UnmarshalCaddyfile(caddyfile.NewTestDispenser(tt.caddyfile)); tt.wantErr {
 				require.Errorf(t, err, "UnmarshalCaddyfile() wantErr %v", tt.wantErr)
 				return

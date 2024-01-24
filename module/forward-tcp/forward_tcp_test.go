@@ -1,4 +1,4 @@
-package point_c_test
+package forward_tcp
 
 import (
 	"bytes"
@@ -9,7 +9,8 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/google/uuid"
-	pointc "github.com/point-c/caddy"
+	"github.com/point-c/caddy/module/forward"
+	pointc "github.com/point-c/caddy/module/point-c"
 	"github.com/point-c/caddy/pkg/configvalues"
 	testcaddy "github.com/point-c/caddy/pkg/test-caddy"
 	channel_listener "github.com/point-c/channel-listener"
@@ -37,7 +38,7 @@ func TestConnPair_DialTunnel(t *testing.T) {
 			}
 			return d
 		}
-		require.False(t, (&pointc.ConnPair{
+		require.False(t, (&ConnPair{
 			Cancel: func() { cancelled = true },
 			Remote: testcaddy.NewTestConn(t),
 			Logger: slog.New(slog.NewTextHandler(&buf, nil)),
@@ -62,7 +63,7 @@ func TestConnPair_DialTunnel(t *testing.T) {
 			}
 			return d
 		}
-		require.True(t, (&pointc.ConnPair{
+		require.True(t, (&ConnPair{
 			Ctx:    ctx,
 			Cancel: func() { cancel(); cancelled = true },
 			Remote: testcaddy.NewTestConn(t),
@@ -82,9 +83,9 @@ func TestForwardTCP_Start(t *testing.T) {
 		require.NoError(t, err)
 		defer func() { require.NoError(t, ln.Close()) }()
 		port := ln.Addr().(*net.TCPAddr).Port
-		var f pointc.ForwardTCP
+		var f ForwardTCP
 		require.NoError(t, f.Ports.UnmarshalText([]byte(fmt.Sprintf("%d:%d", port, port))))
-		require.Error(t, f.Start(&pointc.ForwardNetworks{Src: testcaddy.NewTestNet(t), Dst: testcaddy.NewTestNet(t)}))
+		require.Error(t, f.Start(&forward.ForwardNetworks{Src: testcaddy.NewTestNet(t), Dst: testcaddy.NewTestNet(t)}))
 	})
 }
 
@@ -94,7 +95,7 @@ func TestForwardTCP_ProvisionStartCleanup(t *testing.T) {
 	v, err := ctx.LoadModuleByID("point-c.op.forward.tcp", caddyconfig.JSON(map[string]any{"ports": "80:80"}, nil))
 	require.NoError(t, err)
 	require.NotNil(t, v)
-	ftcp, ok := v.(*pointc.ForwardTCP)
+	ftcp, ok := v.(*ForwardTCP)
 	require.True(t, ok)
 
 	str1, str2 := "test", "foobar"
@@ -102,7 +103,7 @@ func TestForwardTCP_ProvisionStartCleanup(t *testing.T) {
 	srcNet := compareNet(t, str1, str2, srcDone)
 	dstNet := compareNet(t, str2, str1, dstDone)
 
-	require.NoError(t, ftcp.Start(&pointc.ForwardNetworks{Src: srcNet, Dst: dstNet}))
+	require.NoError(t, ftcp.Start(&forward.ForwardNetworks{Src: srcNet, Dst: dstNet}))
 	select {
 	case <-srcDone:
 		select {
@@ -160,22 +161,22 @@ func compareNet(t *testing.T, readSend, writeExpected string, done chan<- struct
 
 func TestForwardTCP_UnmarshalCaddyfile(t *testing.T) {
 	t.Run("invalid port pair", func(t *testing.T) {
-		var ftcp pointc.ForwardTCP
+		var ftcp ForwardTCP
 		require.ErrorContains(t, ftcp.UnmarshalCaddyfile(caddyfile.NewTestDispenser(uuid.New().String())), "not a pair value")
 	})
 	t.Run("valid", func(t *testing.T) {
-		var ftcp pointc.ForwardTCP
+		var ftcp ForwardTCP
 		require.NoError(t, ftcp.UnmarshalCaddyfile(caddyfile.NewTestDispenser("80:80")))
 		require.Equal(t, configvalues.PairValue[uint16]{
 			Left: 80, Right: 80,
 		}, *ftcp.Ports.Value())
 	})
 	t.Run("invalid buf size", func(t *testing.T) {
-		var ftcp pointc.ForwardTCP
+		var ftcp ForwardTCP
 		require.Error(t, ftcp.UnmarshalCaddyfile(caddyfile.NewTestDispenser("80:80 a")))
 	})
 	t.Run("no next", func(t *testing.T) {
-		var ftcp pointc.ForwardTCP
+		var ftcp ForwardTCP
 		require.Error(t, ftcp.UnmarshalCaddyfile(caddyfile.NewTestDispenser("tcp")))
 
 	})
@@ -244,12 +245,12 @@ func TestForwardTCP_UnmarshalCaddyfile(t *testing.T) {
 func TestTcpCopy(t *testing.T) {
 	t.Run("ok", func(t *testing.T) {
 		var buf bytes.Buffer
-		pointc.TcpCopy(func() {}, slog.New(slog.NewTextHandler(&buf, nil)), io.Discard, io.LimitReader(nil, 0), []byte{0})
+		TcpCopy(func() {}, slog.New(slog.NewTextHandler(&buf, nil)), io.Discard, io.LimitReader(nil, 0), []byte{0})
 		require.Empty(t, buf.Bytes())
 	})
 	t.Run("not ok", func(t *testing.T) {
 		var buf bytes.Buffer
-		pointc.TcpCopy(func() {}, slog.New(slog.NewTextHandler(&buf, nil)), io.Discard, iotest.ErrReader(errors.New("test")), []byte{0})
+		TcpCopy(func() {}, slog.New(slog.NewTextHandler(&buf, nil)), io.Discard, iotest.ErrReader(errors.New("test")), []byte{0})
 		require.NotEmpty(t, buf.Bytes())
 	})
 }
@@ -266,7 +267,7 @@ func TestListenLoop(t *testing.T) {
 	}()
 
 	var wg simplewg.Wg
-	wg.Go(func() { pointc.ListenLoop(cln, out) })
+	wg.Go(func() { ListenLoop(cln, out) })
 
 	v, ok := <-out
 	require.True(t, ok)
@@ -281,11 +282,11 @@ func TestPrepareConnPairLoop(t *testing.T) {
 	defer cancel()
 
 	in := make(chan net.Conn)
-	out := make(chan *pointc.ConnPair)
+	out := make(chan *ConnPair)
 
 	var wg simplewg.Wg
 	wg.Go(func() {
-		pointc.PrepareConnPairLoop(ctx, slog.Default(), in, out)
+		PrepareConnPairLoop(ctx, slog.Default(), in, out)
 	})
 
 	in <- testcaddy.NewTestConn(t)
@@ -305,18 +306,18 @@ func TestStartCopyLoop(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 
-	in := make(chan *pointc.ConnPair)
+	in := make(chan *ConnPair)
 	out := make(chan bool)
 
 	var wg simplewg.Wg
 	defer wg.Wait()
 	wg.Go(func() {
 		defer close(out)
-		pointc.StartCopyLoop(in, func(done func(), _ *slog.Logger, _ io.Writer, _ io.Reader) { done(); out <- true })
+		StartCopyLoop(in, func(done func(), _ *slog.Logger, _ io.Writer, _ io.Reader) { done(); out <- true })
 	})
 
-	newConnPair := func() *pointc.ConnPair {
-		var cp pointc.ConnPair
+	newConnPair := func() *ConnPair {
+		var cp ConnPair
 		cp.Ctx, cp.Cancel = context.WithCancel(ctx)
 		cp.Logger = slog.Default()
 		cp.Remote = new(testcaddy.TestConn)
@@ -351,8 +352,8 @@ func TestDialRemoteLoop(t *testing.T) {
 	var buf bytes.Buffer
 	l := slog.New(slog.NewTextHandler(&buf, nil))
 
-	in := make(chan *pointc.ConnPair)
-	out := make(chan *pointc.ConnPair)
+	in := make(chan *ConnPair)
+	out := make(chan *ConnPair)
 
 	var wg simplewg.Wg
 	dialerFn := make(chan pointc.Dialer)
@@ -363,7 +364,7 @@ func TestDialRemoteLoop(t *testing.T) {
 	closeInOnce := sync.OnceFunc(func() { close(in) })
 	wg.Go(func() {
 		defer closeInOnce()
-		pointc.DialRemoteLoop(n, 0, in, out)
+		DialRemoteLoop(n, 0, in, out)
 	})
 	go func() {
 		defer close(out)
@@ -375,7 +376,7 @@ func TestDialRemoteLoop(t *testing.T) {
 		cancel()
 		var cancelled bool
 		done := make(chan struct{})
-		in <- &pointc.ConnPair{
+		in <- &ConnPair{
 			Ctx:    ctx,
 			Cancel: func() { defer close(done); cancelled = true },
 			Remote: testcaddy.NewTestConn(t),
@@ -398,7 +399,7 @@ func TestDialRemoteLoop(t *testing.T) {
 			dialerFn <- d
 		}()
 		var cancelled bool
-		in <- &pointc.ConnPair{
+		in <- &ConnPair{
 			Ctx:    ctx,
 			Cancel: func() { cancel(); cancelled = true },
 			Remote: testcaddy.NewTestConn(t),
@@ -419,7 +420,7 @@ func TestDialRemoteLoop(t *testing.T) {
 			d.DialFn = func(context.Context, *net.TCPAddr) (net.Conn, error) { return testcaddy.NewTestConn(t), nil }
 			dialerFn <- d
 		}()
-		pc := &pointc.ConnPair{
+		pc := &ConnPair{
 			Ctx:    ctx,
 			Cancel: func() { cancel(); cancelled = true },
 			Remote: testcaddy.NewTestConn(t),

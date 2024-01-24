@@ -2,7 +2,7 @@ package test_caddy
 
 import (
 	"errors"
-	pointc "github.com/point-c/caddy"
+	pointc "github.com/point-c/caddy/module/point-c"
 	"net"
 	"testing"
 )

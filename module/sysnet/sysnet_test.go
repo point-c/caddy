@@ -1,4 +1,4 @@
-package point_c_test
+package sysnet
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
-	pointc "github.com/point-c/caddy"
+	"github.com/point-c/caddy/module/point-c"
 	"github.com/stretchr/testify/require"
 	"io"
 	"math"
@@ -29,7 +29,7 @@ func TestSysnet(t *testing.T) {
 		},
 	}, nil))
 	require.NoError(t, err)
-	pc, ok := a.(pointc.NetLookup)
+	pc, ok := a.(point_c.NetLookup)
 	require.True(t, ok)
 	sys, ok := pc.Lookup("test")
 	require.True(t, ok)
@@ -93,22 +93,22 @@ func TestSysnet(t *testing.T) {
 
 func TestCaddyListen(t *testing.T) {
 	t.Run("bad addr", func(t *testing.T) {
-		_, err := pointc.CaddyListen[any](nil, &net.TCPAddr{Port: math.MaxUint16 + 1})
+		_, err := CaddyListen[any](nil, &net.TCPAddr{Port: math.MaxUint16 + 1})
 		require.ErrorContains(t, err, "invalid start port")
 	})
 	t.Run("bad listen", func(t *testing.T) {
 		ln, err := net.Listen("tcp", "0.0.0.0:0")
 		require.NoError(t, err)
 		defer ln.Close()
-		_, err = pointc.CaddyListen[net.Listener](context.Background(), ln.Addr())
+		_, err = CaddyListen[net.Listener](context.Background(), ln.Addr())
 		require.ErrorContains(t, err, "address already in use")
 	})
 	t.Run("bad type", func(t *testing.T) {
-		_, err := pointc.CaddyListen[bool](context.Background(), &net.TCPAddr{IP: net.IPv4zero})
+		_, err := CaddyListen[bool](context.Background(), &net.TCPAddr{IP: net.IPv4zero})
 		require.ErrorContains(t, err, "invalid listener type")
 	})
 	t.Run("ok", func(t *testing.T) {
-		ln, err := pointc.CaddyListen[net.Listener](context.Background(), &net.TCPAddr{})
+		ln, err := CaddyListen[net.Listener](context.Background(), &net.TCPAddr{})
 		require.NoError(t, err)
 		require.NoError(t, ln.Close())
 	})
@@ -116,18 +116,18 @@ func TestCaddyListen(t *testing.T) {
 
 func TestSysnet_UnmarshalCaddyfile(t *testing.T) {
 	t.Run("nothing", func(t *testing.T) {
-		require.NoError(t, new(pointc.Sysnet).UnmarshalCaddyfile(caddyfile.NewTestDispenser("")))
+		require.NoError(t, new(Sysnet).UnmarshalCaddyfile(caddyfile.NewTestDispenser("")))
 	})
 	t.Run("no hostname", func(t *testing.T) {
-		require.Error(t, new(pointc.Sysnet).UnmarshalCaddyfile(caddyfile.NewTestDispenser("system")))
+		require.Error(t, new(Sysnet).UnmarshalCaddyfile(caddyfile.NewTestDispenser("system")))
 	})
 	t.Run("no addr", func(t *testing.T) {
-		var sn pointc.Sysnet
+		var sn Sysnet
 		require.NoError(t, sn.UnmarshalCaddyfile(caddyfile.NewTestDispenser("system test")))
 		require.Equal(t, "test", sn.Hostname.Value())
 	})
 	t.Run("full", func(t *testing.T) {
-		var sn pointc.Sysnet
+		var sn Sysnet
 		require.NoError(t, sn.UnmarshalCaddyfile(caddyfile.NewTestDispenser("system test 1.2.3.4")))
 		require.Equal(t, "test", sn.Hostname.Value())
 		require.Equal(t, net.IPv4(1, 2, 3, 4), sn.Addr.Value())

@@ -1,4 +1,4 @@
-package point_c
+package forward
 
 import (
 	"encoding/json"
@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
+	"github.com/point-c/caddy/module/point-c"
 	"github.com/point-c/caddy/pkg/caddyreg"
 	"github.com/point-c/caddy/pkg/configvalues"
 	"github.com/point-c/caddy/pkg/lifecycler"
@@ -16,7 +17,7 @@ func init() {
 }
 
 var (
-	_ NetOp                 = (*Forward)(nil)
+	_ point_c.NetOp         = (*Forward)(nil)
 	_ caddy.Provisioner     = (*Forward)(nil)
 	_ caddy.CleanerUpper    = (*Forward)(nil)
 	_ caddy.Module          = (*Forward)(nil)
@@ -33,7 +34,7 @@ type (
 	// ForwardProto is implemented by modules in the "point-c.op.forward" namespace.
 	ForwardProto = lifecycler.LifeCyclable[*ForwardNetworks]
 	// ForwardNetworks contains the networks that have their traffic forwarded.
-	ForwardNetworks struct{ Src, Dst Net }
+	ForwardNetworks struct{ Src, Dst point_c.Net }
 )
 
 // Provision implements [caddy.Provisioner].
@@ -46,8 +47,8 @@ func (f *Forward) Provision(ctx caddy.Context) error {
 }
 
 // Start implements [NetOp].
-func (f *Forward) Start(lookup NetLookup) error {
-	check := func(name string, n *Net) error {
+func (f *Forward) Start(lookup point_c.NetLookup) error {
+	check := func(name string, n *point_c.Net) error {
 		if v, ok := lookup.Lookup(name); ok {
 			*n = v
 			return nil
