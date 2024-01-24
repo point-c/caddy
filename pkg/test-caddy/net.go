@@ -9,6 +9,7 @@ import (
 
 var _ pointc.Net = (*TestNet)(nil)
 
+// TestNet is a mock point-c network net module.
 type TestNet struct {
 	t              testing.TB
 	ListenFn       func(*net.TCPAddr) (net.Listener, error)
@@ -17,37 +18,37 @@ type TestNet struct {
 	LocalAddrFn    func() net.IP
 }
 
+// NewTestNet creates and initializes a new instance of [TestNet].
 func NewTestNet(t testing.TB) *TestNet {
-	t.Helper()
 	return &TestNet{t: t}
 }
 
+// Listen attempts to call ListenFn. If ListenFn is not set, an error is returned.
 func (tn *TestNet) Listen(addr *net.TCPAddr) (net.Listener, error) {
-	tn.t.Helper()
 	if tn.ListenFn != nil {
 		return tn.ListenFn(addr)
 	}
-	return nil, errors.New("Listen not implemented")
+	return nil, errors.New("listen not implemented")
 }
 
+// ListenPacket attempts to call ListenPacketFn. If ListenPacketFn is not set, an error is returned.
 func (tn *TestNet) ListenPacket(addr *net.UDPAddr) (net.PacketConn, error) {
-	tn.t.Helper()
 	if tn.ListenPacketFn != nil {
 		return tn.ListenPacketFn(addr)
 	}
 	return nil, errors.New("ListenPacket not implemented")
 }
 
+// Dialer attempts to call DialerFn. If DialerFn is not set, [NewTestDialer] is used to create a value.
 func (tn *TestNet) Dialer(laddr net.IP, port uint16) pointc.Dialer {
-	tn.t.Helper()
 	if tn.DialerFn != nil {
 		return tn.DialerFn(laddr, port)
 	}
 	return NewTestDialer(tn.t)
 }
 
+// LocalAddr attempts to call LocalAddrFn. If LocalAddrFn is not set, an error is returned.
 func (tn *TestNet) LocalAddr() net.IP {
-	tn.t.Helper()
 	if tn.LocalAddrFn != nil {
 		return tn.LocalAddrFn()
 	}

@@ -61,42 +61,36 @@ func TestMergeWrapper_WrapListener(t *testing.T) {
 
 	t.Run("one listener, accept from wrapped", func(t *testing.T) {
 		acceptTest(t, 1, func(t testing.TB, wrapped *test_caddy.TestListenerModule[func(net.Listener)], _ []*test_caddy.TestListenerModule[func(net.Listener)]) []*test_caddy.TestListenerModule[func(net.Listener)] {
-			t.Helper()
 			return []*test_caddy.TestListenerModule[func(net.Listener)]{wrapped}
 		})
 	})
 
 	t.Run("one listener, accept from merged", func(t *testing.T) {
 		acceptTest(t, 1, func(t testing.TB, _ *test_caddy.TestListenerModule[func(net.Listener)], lns []*test_caddy.TestListenerModule[func(net.Listener)]) []*test_caddy.TestListenerModule[func(net.Listener)] {
-			t.Helper()
 			return lns
 		})
 	})
 
 	t.Run("two listeners, accept from wrapped", func(t *testing.T) {
 		acceptTest(t, 1, func(t testing.TB, wrapped *test_caddy.TestListenerModule[func(net.Listener)], _ []*test_caddy.TestListenerModule[func(net.Listener)]) []*test_caddy.TestListenerModule[func(net.Listener)] {
-			t.Helper()
 			return []*test_caddy.TestListenerModule[func(net.Listener)]{wrapped}
 		})
 	})
 
 	t.Run("two listeners, accept from one random merged", func(t *testing.T) {
 		acceptTest(t, 1, func(t testing.TB, _ *test_caddy.TestListenerModule[func(net.Listener)], lns []*test_caddy.TestListenerModule[func(net.Listener)]) []*test_caddy.TestListenerModule[func(net.Listener)] {
-			t.Helper()
 			return []*test_caddy.TestListenerModule[func(net.Listener)]{lns[rand.Intn(len(lns))]}
 		})
 	})
 
 	t.Run("two listeners, accept from both", func(t *testing.T) {
 		acceptTest(t, 1, func(t testing.TB, _ *test_caddy.TestListenerModule[func(net.Listener)], lns []*test_caddy.TestListenerModule[func(net.Listener)]) []*test_caddy.TestListenerModule[func(net.Listener)] {
-			t.Helper()
 			return lns
 		})
 	})
 
 	t.Run("three listeners, accept all", func(t *testing.T) {
 		acceptTest(t, 1, func(t testing.TB, wrapped *test_caddy.TestListenerModule[func(net.Listener)], lns []*test_caddy.TestListenerModule[func(net.Listener)]) []*test_caddy.TestListenerModule[func(net.Listener)] {
-			t.Helper()
 			lns = append([]*test_caddy.TestListenerModule[func(net.Listener)]{wrapped}, lns...)
 			rand.Shuffle(len(lns), func(i, j int) { lns[i], lns[j] = lns[j], lns[i] })
 			return lns
@@ -105,14 +99,12 @@ func TestMergeWrapper_WrapListener(t *testing.T) {
 
 	t.Run("three listeners, accept wrapped and one merged", func(t *testing.T) {
 		acceptTest(t, 1, func(t testing.TB, wrapped *test_caddy.TestListenerModule[func(net.Listener)], lns []*test_caddy.TestListenerModule[func(net.Listener)]) []*test_caddy.TestListenerModule[func(net.Listener)] {
-			t.Helper()
 			return []*test_caddy.TestListenerModule[func(net.Listener)]{wrapped, lns[rand.Intn(len(lns))]}
 		})
 	})
 }
 
 func acceptTest(t testing.TB, n int, acceptor func(t testing.TB, wrapped *test_caddy.TestListenerModule[func(net.Listener)], lns []*test_caddy.TestListenerModule[func(net.Listener)]) []*test_caddy.TestListenerModule[func(net.Listener)]) {
-	t.Helper()
 	n = max(n, 1)
 	ctx, cancel := caddy.NewContext(caddy.Context{Context: context.TODO()})
 	defer func() {
@@ -301,7 +293,6 @@ func TestMergeWrapper_UnmarshalCaddyfile(t *testing.T) {
 }
 
 func generateMergedJSON[T any](t testing.TB, tln ...*test_caddy.TestListenerModule[T]) []byte {
-	t.Helper()
 	raw := make([]json.RawMessage, len(tln))
 	for i, ln := range tln {
 		raw[i] = caddyconfig.JSONModuleObject(struct{}{}, "listener", ln.ID, nil)
@@ -310,13 +301,11 @@ func generateMergedJSON[T any](t testing.TB, tln ...*test_caddy.TestListenerModu
 }
 
 func NewTestListeners(t testing.TB, n int) ([]*test_caddy.TestListenerModule[func(net.Listener)], func()) {
-	t.Helper()
 	ln := make([]*test_caddy.TestListenerModule[func(net.Listener)], n)
 	for i := 0; i < n; i++ {
 		ln[i] = test_caddy.NewTestListenerModule[func(net.Listener)](t)
 	}
 	return ln, func() {
-		t.Helper()
 		for _, cl := range ln {
 			cl.Register()
 		}

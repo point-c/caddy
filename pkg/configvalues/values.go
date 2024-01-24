@@ -28,6 +28,7 @@ func (b *ValueBool) Value() bool {
 	return bool(*b)
 }
 
+// Reset sets the value to false.
 func (b *ValueBool) Reset() { *b = false }
 
 // ValueString handles unmarshalling string values.
@@ -44,6 +45,7 @@ func (s *ValueString) Value() string {
 	return string(*s)
 }
 
+// Reset sets the value to the empty string
 func (s *ValueString) Reset() { *s = "" }
 
 // ValueUnsigned is a generic type for unmarshalling an unsigned number.
@@ -74,6 +76,7 @@ func (n *ValueUnsigned[N]) Value() N {
 	return n.V
 }
 
+// Reset sets this value to 0.
 func (n *ValueUnsigned[N]) Reset() { n.V = 0 }
 
 // ValueUDPAddr handles unmarshalling a [net.UDPAddr].
@@ -95,6 +98,7 @@ func (addr *ValueUDPAddr) Value() *net.UDPAddr {
 	return (*net.UDPAddr)(addr)
 }
 
+// Reset sets this value to an empty UDPAddr.
 func (addr *ValueUDPAddr) Reset() { *addr = ValueUDPAddr{} }
 
 // ValueIP handles unmarshalling [net.IP].
@@ -111,12 +115,15 @@ func (ip *ValueIP) Value() net.IP {
 	return net.IP(*ip)
 }
 
+// Reset sets this value to nil.
 func (ip *ValueIP) Reset() { *ip = nil }
 
+// ValuePair represents a structured combination of `<value>:<value>` pairs.
 type ValuePair[V any, T any, TP valueConstraint[V, T]] struct {
 	left, right CaddyTextUnmarshaler[V, T, TP]
 }
 
+// UnmarshalText unmarshals a `<value>:<value>` pair.
 func (pp *ValuePair[V, T, TP]) UnmarshalText(b []byte) error {
 	left, right, ok := bytes.Cut(b, []byte{':'})
 	if !ok {
@@ -125,6 +132,7 @@ func (pp *ValuePair[V, T, TP]) UnmarshalText(b []byte) error {
 	return errors.Join(pp.left.UnmarshalText(left), pp.right.UnmarshalText(right))
 }
 
+// Value returns the pair's base values.
 func (pp *ValuePair[V, T, TP]) Value() *PairValue[V] {
 	return &PairValue[V]{
 		Left:  pp.left.Value(),
@@ -132,6 +140,7 @@ func (pp *ValuePair[V, T, TP]) Value() *PairValue[V] {
 	}
 }
 
+// Reset resets the pair values to their zero values.
 func (pp *ValuePair[V, T, TP]) Reset() {
 	for _, e := range []*CaddyTextUnmarshaler[V, T, TP]{&pp.left, &pp.right} {
 		*e = CaddyTextUnmarshaler[V, T, TP]{}

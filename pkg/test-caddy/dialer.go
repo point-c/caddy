@@ -10,27 +10,28 @@ import (
 
 var _ pointc.Dialer = (*TestDialer)(nil)
 
+// TestDialer is a mock [pointc.Dialer].
 type TestDialer struct {
 	t            testing.TB
 	DialFn       func(context.Context, *net.TCPAddr) (net.Conn, error)
 	DialPacketFn func(*net.UDPAddr) (net.PacketConn, error)
 }
 
+// NewTestDialer creates and initializes a new instance of [TestDialer].
 func NewTestDialer(t testing.TB) *TestDialer {
-	t.Helper()
 	return &TestDialer{t: t}
 }
 
+// Dial attempts to call DialFn. If DialFn is not set, an error is returned.
 func (td *TestDialer) Dial(ctx context.Context, addr *net.TCPAddr) (net.Conn, error) {
-	td.t.Helper()
 	if td.DialFn != nil {
 		return td.DialFn(ctx, addr)
 	}
 	return nil, errors.New("dial not implemented")
 }
 
+// DialPacket attempts to call DialPacketFn. If DialPacketFn is not set, an error is returned.
 func (td *TestDialer) DialPacket(addr *net.UDPAddr) (net.PacketConn, error) {
-	td.t.Helper()
 	if td.DialPacketFn != nil {
 		return td.DialPacketFn(addr)
 	}

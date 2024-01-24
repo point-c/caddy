@@ -24,14 +24,12 @@ func TestValueBool(t *testing.T) {
 }
 
 func testParseBools(t testing.TB, b []string, expected bool) {
-	t.Helper()
 	for _, b := range b {
 		require.NoError(t, testParseBool(t, b, expected))
 	}
 }
 
 func testParseBool(t testing.TB, b string, expected bool) error {
-	t.Helper()
 	var vb configvalues.ValueBool
 	if err := vb.UnmarshalText([]byte(b)); err != nil {
 		return err
@@ -61,7 +59,6 @@ func TestValueUnsigned(t *testing.T) {
 }
 
 func testValueUnsigned[N constraints.Unsigned](t *testing.T) {
-	t.Helper()
 	testValueUnsignedInvalid[N](t, "")
 	testValueUnsignedInvalid[N](t, "abc")
 	testValueUnsignedInvalid[N](t, "+123")
@@ -73,7 +70,6 @@ func testValueUnsigned[N constraints.Unsigned](t *testing.T) {
 }
 
 func testValueUnsignedInvalid[N constraints.Unsigned](t *testing.T, b string) {
-	t.Helper()
 	t.Run(fmt.Sprintf("%T invalid parse %q", *new(N), b), func(t *testing.T) {
 		var vu configvalues.ValueUnsigned[N]
 		require.Error(t, vu.UnmarshalText([]byte(b)))
@@ -81,7 +77,6 @@ func testValueUnsignedInvalid[N constraints.Unsigned](t *testing.T, b string) {
 }
 
 func testValueUnsignedValid[N constraints.Unsigned](t *testing.T, n N) {
-	t.Helper()
 	t.Run(fmt.Sprintf("%[1]T parse %[1]d", n), func(t *testing.T) {
 		var vu configvalues.ValueUnsigned[N]
 		require.NoError(t, vu.UnmarshalText([]byte(fmt.Sprintf("%d", n))))
@@ -140,7 +135,6 @@ func TestValueUDPAddr(t *testing.T) {
 func TestValuePair(t *testing.T) {
 	type testType = configvalues.ValuePair[uint16, configvalues.ValueUnsigned[uint16], *configvalues.ValueUnsigned[uint16]]
 	failTests := func(t *testing.T, strs ...string) {
-		t.Helper()
 		for _, str := range strs {
 			t.Run(str, func(t *testing.T) {
 				var pp testType
@@ -150,9 +144,7 @@ func TestValuePair(t *testing.T) {
 	}
 
 	okTest := func(t *testing.T, str string, exp configvalues.PairValue[uint16]) {
-		t.Helper()
 		t.Run(str, func(t *testing.T) {
-			t.Helper()
 			var pp testType
 			if err := pp.UnmarshalText([]byte(str)); err != nil {
 				t.Fatal(err.Error())

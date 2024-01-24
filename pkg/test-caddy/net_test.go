@@ -15,7 +15,7 @@ func TestTestNetListen(t *testing.T) {
 	tn := NewTestNet(t)
 
 	_, err := tn.Listen(&net.TCPAddr{})
-	require.EqualError(t, err, "Listen not implemented")
+	require.EqualError(t, err, "listen not implemented")
 
 	testListener := NewTestListener(t)
 	tn.ListenFn = func(addr *net.TCPAddr) (net.Listener, error) {

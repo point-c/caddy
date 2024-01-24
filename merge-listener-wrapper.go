@@ -137,7 +137,7 @@ func listen(ls net.Listener, conns chan<- net.Conn, done <-chan struct{}, finish
 // ```
 func (p *MergeWrapper) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	return p.lf.UnmarshalCaddyfile(d, &lifecycler.CaddyfileInfo{
-		ModuleID:           "caddy.listeners.merge.",
+		ModuleID:           []string{"caddy", "listeners", "merge"},
 		Raw:                &p.ListenerRaw,
 		SubModuleSpecifier: "listener",
 	})

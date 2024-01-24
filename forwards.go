@@ -87,7 +87,7 @@ func (f *Forward) CaddyModule() caddy.ModuleInfo {
 // ```
 func (f *Forward) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	return f.lf.UnmarshalCaddyfile(d, &lifecycler.CaddyfileInfo{
-		ModuleID:           "point-c.op.forward.",
+		ModuleID:           []string{"point-c", "op", "forward"},
 		Raw:                &f.ForwardsRaw,
 		SubModuleSpecifier: "forward",
 		ParseVerbLine:      &f.Hosts,

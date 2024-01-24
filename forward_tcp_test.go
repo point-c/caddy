@@ -357,8 +357,8 @@ func TestDialRemoteLoop(t *testing.T) {
 	var wg simplewg.Wg
 	dialerFn := make(chan pointc.Dialer)
 	n := testcaddy.NewTestNet(t)
-	n.DialerFn = func(net.IP, uint16) pointc.Dialer { t.Helper(); return <-dialerFn }
-	n.LocalAddrFn = func() net.IP { t.Helper(); return net.IPv4zero }
+	n.DialerFn = func(net.IP, uint16) pointc.Dialer { return <-dialerFn }
+	n.LocalAddrFn = func() net.IP { return net.IPv4zero }
 
 	closeInOnce := sync.OnceFunc(func() { close(in) })
 	wg.Go(func() {

@@ -148,13 +148,13 @@ func (pc *Pointc) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 	for d.Next() {
 		if v := d.Val(); !d.NextArg() && v == "point-c" {
 			return pc.lf.UnmarshalCaddyfile(d.NewFromNextSegment(), &lifecycler.CaddyfileInfo{
-				ModuleID:           "point-c.net.",
+				ModuleID:           []string{"point-c", "net"},
 				Raw:                &pc.NetworksRaw,
 				SubModuleSpecifier: "type",
 			})
 		} else if v := d.Val(); v == "netops" {
 			return pc.ops.UnmarshalCaddyfile(d.NewFromNextSegment(), &lifecycler.CaddyfileInfo{
-				ModuleID:           "point-c.op.",
+				ModuleID:           []string{"point-c", "op"},
 				Raw:                &pc.NetOps,
 				SubModuleSpecifier: "op",
 			})

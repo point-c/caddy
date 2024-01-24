@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/point-c/caddy/pkg/lifecycler"
 	"github.com/stretchr/testify/require"
+	"strings"
 	"testing"
 )
 
@@ -192,7 +193,7 @@ func TestLifeCycler_UnmarshalCaddyfile(t *testing.T) {
 			require.Error(t, lf.UnmarshalCaddyfile(caddyfile.NewTestDispenser(`foo bar {
 	`+string(m.id)+`
 }`), &lifecycler.CaddyfileInfo{
-				ModuleID:           string(m.id),
+				ModuleID:           []string{string(m.id)},
 				Raw:                new([]json.RawMessage),
 				SubModuleSpecifier: "f",
 				ParseVerbLine:      &TestVerb{},
@@ -200,26 +201,34 @@ func TestLifeCycler_UnmarshalCaddyfile(t *testing.T) {
 		})
 		t.Run("one", func(t *testing.T) {
 			var lf lifecycler.LifeCycler[any]
+			parent := NewTestModule[any]()
+			caddy.RegisterModule(parent)
 			m := NewTestModule[any]()
+			m.id = caddy.ModuleID(strings.Join([]string{string(parent.id), string(m.id)}, "."))
 			caddy.RegisterModule(m)
-			require.NoError(t, lf.UnmarshalCaddyfile(caddyfile.NewTestDispenser(`foo {
-	`+string(m.id)+`
+			require.NoError(t, lf.UnmarshalCaddyfile(caddyfile.NewTestDispenser(string(parent.id)+` {
+	`+m.id.Name()+`
 }`), &lifecycler.CaddyfileInfo{
-				ModuleID:           "",
+				ModuleID:           []string{string(parent.id)},
 				Raw:                new([]json.RawMessage),
 				SubModuleSpecifier: "f",
 			}))
 		})
 		t.Run("two", func(t *testing.T) {
 			var lf lifecycler.LifeCycler[any]
+			parent := NewTestModule[any]()
+			caddy.RegisterModule(parent)
 			m1 := NewTestModule[any]()
+			m1.id = caddy.ModuleID(strings.Join([]string{string(parent.id), string(m1.id)}, "."))
 			caddy.RegisterModule(m1)
 			m2 := NewTestModule[any]()
+			m2.id = caddy.ModuleID(strings.Join([]string{string(parent.id), string(m2.id)}, "."))
 			caddy.RegisterModule(m2)
-			require.NoError(t, lf.UnmarshalCaddyfile(caddyfile.NewTestDispenser(`foo {
-	`+string(m1.id)+`
-	`+string(m2.id)+`
+			require.NoError(t, lf.UnmarshalCaddyfile(caddyfile.NewTestDispenser(string(parent.id)+` {
+	`+m1.id.Name()+`
+	`+m1.id.Name()+`
 }`), &lifecycler.CaddyfileInfo{
+				ModuleID:           []string{string(parent.id)},
 				Raw:                new([]json.RawMessage),
 				SubModuleSpecifier: "f",
 			}))

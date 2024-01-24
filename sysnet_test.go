@@ -99,8 +99,18 @@ func TestCaddyListen(t *testing.T) {
 	t.Run("bad listen", func(t *testing.T) {
 		ln, err := net.Listen("tcp", "0.0.0.0:0")
 		require.NoError(t, err)
+		defer ln.Close()
 		_, err = pointc.CaddyListen[net.Listener](context.Background(), ln.Addr())
 		require.ErrorContains(t, err, "address already in use")
+	})
+	t.Run("bad type", func(t *testing.T) {
+		_, err := pointc.CaddyListen[bool](context.Background(), &net.TCPAddr{IP: net.IPv4zero})
+		require.ErrorContains(t, err, "invalid listener type")
+	})
+	t.Run("ok", func(t *testing.T) {
+		ln, err := pointc.CaddyListen[net.Listener](context.Background(), &net.TCPAddr{})
+		require.NoError(t, err)
+		require.NoError(t, ln.Close())
 	})
 }
 

@@ -33,6 +33,7 @@ type (
 	HostnamePair = CaddyTextUnmarshaler[*PairValue[string], ValuePair[string, ValueString, *ValueString], *ValuePair[string, ValueString, *ValueString]]
 )
 
+// PairValue is used to store the base values of a parsed pair value.
 type PairValue[T any] struct {
 	Left, Right T
 }
