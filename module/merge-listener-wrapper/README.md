@@ -22,7 +22,7 @@ To install the Caddy Merge Listener Wrapper, you will need to build a custom Cad
 
 2. **Build Caddy with the Merge Listener Wrapper**:
    ```sh
-   xcaddy build --with github.com/point-c/caddy-merge-listener-wrapper
+   xcaddy build --with github.com/point-c/caddy/module/merge-listener-wrapper
    ```
 
 3. **Run Your Custom Caddy Build**:
@@ -31,10 +31,11 @@ To install the Caddy Merge Listener Wrapper, you will need to build a custom Cad
    ```
 
 ### Configuration
+
 #### JSON Configuration
 Edit your Caddy JSON configuration to include the Merge Listener Wrapper. Here's a snippet to get you started:
 
-```json
+```json5
 {
     // Other Caddy configurations...
     "apps": {
@@ -47,12 +48,13 @@ Edit your Caddy JSON configuration to include the Merge Listener Wrapper. Here's
                             "listeners": [
                             	{
                             		"listener": "<listener>",
-                            		...
+                            		// ...
                             	},
-                            	...
+                               {"wrapper":  "tls"}
+                               // ...
                             ]
                         }
-                    ],
+                    ]
                     // Other server configurations...
                 }
             }
@@ -70,7 +72,7 @@ In your Caddyfile, you can use the Merge Listener Wrapper as follows:
     servers :443 {
     	listener_wrappers {
     		multi {
-			<submodule name> <submodule config>
+			   <submodule name> <submodule config>
     		}
     		# Important! `tls` must be defined and the last wrapper in the list
     		tls

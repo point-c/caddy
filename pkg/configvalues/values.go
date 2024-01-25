@@ -2,8 +2,10 @@ package configvalues
 
 import (
 	"bytes"
+	"encoding"
 	"encoding/binary"
 	"errors"
+	"github.com/point-c/wgapi"
 	"golang.org/x/exp/constraints"
 	"net"
 	"strconv"
@@ -146,3 +148,15 @@ func (pp *ValuePair[V, T, TP]) Reset() {
 		*e = CaddyTextUnmarshaler[V, T, TP]{}
 	}
 }
+
+type valueKey[K wgapi.PrivateKey | wgapi.PublicKey | wgapi.PresharedKey] struct{ K K }
+
+func (wgk *valueKey[K]) UnmarshalText(text []byte) error {
+	return any(&wgk.K).(encoding.TextUnmarshaler).UnmarshalText(text)
+}
+
+func (wgk *valueKey[K]) Value() K {
+	return wgk.K
+}
+
+func (wgk *valueKey[K]) Reset() { *wgk = valueKey[K]{} }

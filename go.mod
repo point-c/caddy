@@ -5,13 +5,17 @@ go 1.21.5
 require (
 	github.com/caddyserver/caddy/v2 v2.7.6
 	github.com/google/uuid v1.5.0
+	github.com/johnstarich/go/gopages v0.1.25
 	github.com/pkg/errors v0.9.1
 	github.com/point-c/channel-listener v0.1.0
-	github.com/point-c/ipcheck v0.1.0
 	github.com/point-c/simplewg v0.1.0
+	github.com/point-c/wg v0.1.0
+	github.com/point-c/wgapi v0.1.0
+	github.com/point-c/wgevents v0.1.0
 	github.com/stretchr/testify v1.8.4
 	go.mrchanchal.com/zaphandler v0.0.0-20230611140024-bd4fd80897ad
 	golang.org/x/exp v0.0.0-20240103183307-be819d1f06fc
+	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173
 )
 
 require (
@@ -55,6 +59,7 @@ require (
 	github.com/golang/glog v1.1.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
+	github.com/google/btree v1.1.2 // indirect
 	github.com/google/cel-go v0.15.1 // indirect
 	github.com/google/certificate-transparency-go v1.1.6 // indirect
 	github.com/google/go-tpm v0.9.0 // indirect
@@ -73,7 +78,6 @@ require (
 	github.com/jackc/pgtype v1.14.0 // indirect
 	github.com/jackc/pgx/v4 v4.18.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
-	github.com/johnstarich/go/gopages v0.1.25 // indirect
 	github.com/johnstarich/go/pipe v0.2.0 // indirect
 	github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd // indirect
 	github.com/klauspost/compress v1.17.0 // indirect
@@ -94,6 +98,8 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/point-c/ipcheck v0.1.0 // indirect
+	github.com/point-c/wglog v0.1.0 // indirect
 	github.com/prometheus/client_golang v1.15.1 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
@@ -151,7 +157,10 @@ require (
 	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/term v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.16.0 // indirect
+	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
+	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20230429144221-925a1e7659e6 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20231016165738-49dd2c1f3d0b // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b // indirect
 	google.golang.org/grpc v1.59.0 // indirect
@@ -160,5 +169,6 @@ require (
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gvisor.dev/gvisor v0.0.0-20231222014442-b27cde5d928c // indirect
 	howett.net/plist v1.0.0 // indirect
 )

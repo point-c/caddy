@@ -180,3 +180,11 @@ func TestValuePair(t *testing.T) {
 		})
 	})
 }
+
+func Test_Key_ValueResetUnmarshalText(t *testing.T) {
+	var k configvalues.PrivateKey
+	require.NoError(t, k.UnmarshalText([]byte("cITqTRxZEM/w1GkCKEin6yiw/D6Co67rE0jL/nRZtEU=")))
+	v := k.Value()
+	require.Error(t, k.UnmarshalText(nil))
+	require.NotEqual(t, v, k.Value())
+}

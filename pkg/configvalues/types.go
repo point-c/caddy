@@ -1,6 +1,7 @@
 package configvalues
 
 import (
+	"github.com/point-c/wgapi"
 	"net"
 )
 
@@ -31,6 +32,13 @@ type (
 	PortPair = CaddyTextUnmarshaler[*PairValue[uint16], ValuePair[uint16, ValueUnsigned[uint16], *ValueUnsigned[uint16]], *ValuePair[uint16, ValueUnsigned[uint16], *ValueUnsigned[uint16]]]
 	// HostnamePair represents a structured combination of hostnames formatted as <hostname>:<hostname>.
 	HostnamePair = CaddyTextUnmarshaler[*PairValue[string], ValuePair[string, ValueString, *ValueString], *ValuePair[string, ValueString, *ValueString]]
+
+	// PrivateKey is a wireguard private key in base64 format.
+	PrivateKey = CaddyTextUnmarshaler[wgapi.PrivateKey, valueKey[wgapi.PrivateKey], *valueKey[wgapi.PrivateKey]]
+	// PublicKey is a wireguard public key in base64 format.
+	PublicKey = CaddyTextUnmarshaler[wgapi.PublicKey, valueKey[wgapi.PublicKey], *valueKey[wgapi.PublicKey]]
+	// PresharedKey is a wireguard preshared key in base64 format.
+	PresharedKey = CaddyTextUnmarshaler[wgapi.PresharedKey, valueKey[wgapi.PresharedKey], *valueKey[wgapi.PresharedKey]]
 )
 
 // PairValue is used to store the base values of a parsed pair value.

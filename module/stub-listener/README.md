@@ -24,7 +24,7 @@ To install the Stub Listener as a Caddy module using the `xcaddy` utility:
 2. **Build Caddy with the Stub Listener Plugin**:
    Use `xcaddy` to build Caddy with the Stub Listener plugin included:
     ```sh
-    xcaddy build --with github.com/point-c/stub-listener
+    xcaddy build --with github.com/point-c/caddy/module/stub-listener
     ```
 
 3. **Run Your Custom Caddy Build**:
@@ -41,7 +41,7 @@ To use the stub listener in a Caddy JSON configuration:
 
 1. **Edit Your Caddy JSON File**: Add a listener with the network type set to "stub". Here's an example snippet:
 
-    ```json
+    ```json5
     {
         "apps": {
             "http": {
