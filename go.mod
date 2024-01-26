@@ -5,11 +5,9 @@ go 1.21.5
 require (
 	github.com/caddyserver/caddy/v2 v2.7.6
 	github.com/google/uuid v1.5.0
-	github.com/johnstarich/go/gopages v0.1.25
 	github.com/pkg/errors v0.9.1
-	github.com/point-c/channel-listener v0.1.0
 	github.com/point-c/simplewg v0.1.0
-	github.com/point-c/wg v0.1.0
+	github.com/point-c/wg v0.2.0
 	github.com/point-c/wgapi v0.1.0
 	github.com/point-c/wgevents v0.1.0
 	github.com/stretchr/testify v1.8.4
@@ -78,6 +76,7 @@ require (
 	github.com/jackc/pgtype v1.14.0 // indirect
 	github.com/jackc/pgx/v4 v4.18.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
+	github.com/johnstarich/go/gopages v0.1.25 // indirect
 	github.com/johnstarich/go/pipe v0.2.0 // indirect
 	github.com/kevinburke/ssh_config v0.0.0-20190725054713-01f96b0aa0cd // indirect
 	github.com/klauspost/compress v1.17.0 // indirect
@@ -98,7 +97,6 @@ require (
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/point-c/ipcheck v0.1.0 // indirect
 	github.com/point-c/wglog v0.1.0 // indirect
 	github.com/prometheus/client_golang v1.15.1 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect

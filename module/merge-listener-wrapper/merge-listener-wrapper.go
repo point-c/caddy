@@ -6,8 +6,8 @@ import (
 	"github.com/caddyserver/caddy/v2"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/point-c/caddy/pkg/caddyreg"
+	"github.com/point-c/caddy/pkg/channel-listener"
 	"github.com/point-c/caddy/pkg/lifecycler"
-	"github.com/point-c/channel-listener"
 	"net"
 )
 

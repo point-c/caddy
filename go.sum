@@ -496,12 +496,10 @@ github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZb
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/point-c/channel-listener v0.1.0 h1:3uAw1tKgSDQn08h0+r87scNWBjsxy1CfSmIJGx5Cm3k=
 github.com/point-c/channel-listener v0.1.0/go.mod h1:Lo+oilIEnmcUqjqx3lAuadwcrrBLEYOYzHKVc89Q44M=
-github.com/point-c/ipcheck v0.1.0 h1:gouGTS/+4vrutF0LUT2Mjya6ef63w1U8wdqR+ZaUWqQ=
-github.com/point-c/ipcheck v0.1.0/go.mod h1:uXFuvOIQMW51tIaD5vtiH2FKTbmHag06O+wYZJ6f6eA=
 github.com/point-c/simplewg v0.1.0 h1:+kl1GbE/hPjti6JJjX6tFQL1+UOZqcGbWYTjeMAPNX0=
 github.com/point-c/simplewg v0.1.0/go.mod h1:A4TMRbudsqFQmnMR83KgkQvF+4GKbGtJwx/6DjcTB60=
-github.com/point-c/wg v0.1.0 h1:EV60XkPJo576yk0lOaeYwzU89JnjbtRvgmn/uUtsc5A=
-github.com/point-c/wg v0.1.0/go.mod h1:tqTaH9MUjqJsqDkQGGLMSPBHR6wAfjYCH86WadewGuY=
+github.com/point-c/wg v0.2.0 h1:gU3dyLgUBYktUOe3VmUq5xnVyAanhc+bjN/jDNucd+8=
+github.com/point-c/wg v0.2.0/go.mod h1:GrUXq3kYILbXcfRloYgTUB4pYTW/+8ze4Cf9MKVyEtI=
 github.com/point-c/wgapi v0.1.0 h1:iK3u7ARHU+wuvp1KVK27OPONyhg+wNlu4q/zjt5cdVY=
 github.com/point-c/wgapi v0.1.0/go.mod h1:JNtJUxxm8+YBtT7JE82f0JeC40m2ILskGs6F+g33/Z0=
 github.com/point-c/wgevents v0.1.0 h1:RPMK96+vhjSfNrVXVaXJxMC1h0gpbZA6Ep+Aq/+jBw8=

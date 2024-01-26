@@ -11,3 +11,5 @@ import (
 	_ "github.com/point-c/caddy/module/sysnet"
 	_ "github.com/point-c/caddy/module/wg"
 )
+
+func init() { _ = 1 }

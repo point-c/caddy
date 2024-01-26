@@ -3,7 +3,7 @@ package stub_listener
 import (
 	"context"
 	"github.com/caddyserver/caddy/v2"
-	"github.com/point-c/channel-listener"
+	"github.com/point-c/caddy/pkg/channel-listener"
 	"net"
 )
 
