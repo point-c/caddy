@@ -2,22 +2,10 @@
 
 [![Go Reference](https://img.shields.io/badge/godoc-reference-%23007d9c.svg)](https://point-c.github.io/caddy)
 
-point-c is a collection of Caddy modules for handling traffic between host systems and WireGuard tunnels. 
-
-## Modules
-
-- `merge-listener-wrapper`: `caddy.ListenerWrapper` that wraps multiple TCP listeners.
-- `point-c`: Handles registered networks and network operations.
-- `sysnet`: A `point-c` network for the host system.
-- `wg`: A `point-c` network for WireGuard tunnels.
-- `listener`: Allows registering a `point-c` network with `merge-listener-wrapper`.
-- `forward`: Network operation that manages modules that move traffic from a source to a destination.
-- `forward-tcp`: A forward submodule that forwards TCP traffic.
-- `stub-listener`: Prevent caddy from listening on the host system.
-- `rand`: A `caddyhttp.MiddlewareHandler` that returns random data.
+point-c is a collection of Caddy modules for handling traffic between host systems and WireGuard tunnels.
 
 ### Installation
-To install a module from `point-c`, you will need to build a custom Caddy binary that includes that module. This can be achieved using the `xcaddy` utility:
+To install the modules from `point-c`, you will need to build a custom Caddy binary that includes that module. This can be achieved using the `xcaddy` utility:
 
 1. **Install xcaddy**:
    ```sh
@@ -27,15 +15,7 @@ To install a module from `point-c`, you will need to build a custom Caddy binary
 2. **Build Caddy with all modules**:
    ```sh
    xcaddy build \
-      --with github.com/point-c/caddy/module/forward@latest \
-      --with github.com/point-c/caddy/module/forward-tcp@latest \
-      --with github.com/point-c/caddy/module/listener@latest \
-      --with github.com/point-c/caddy/module/merge-listener-wrapper@latest \
-      --with github.com/point-c/caddy/module/point-c@latest \
-      --with github.com/point-c/caddy/module/rand@latest \
-      --with github.com/point-c/caddy/module/stub-listener@latest \
-      --with github.com/point-c/caddy/module/sysnet@latest \
-      --with github.com/point-c/caddy/module/wg@latest
+      --with github.com/point-c/caddy/module@latest
    ```
 
 3. **Run Your Custom Caddy Build**:
@@ -43,9 +23,42 @@ To install a module from `point-c`, you will need to build a custom Caddy binary
    ./caddy run
    ```
 
-## Configuration
+## Quickstart
 
-### Quickstart
+### Caddy as Server Configuration
+
+```Caddyfile
+{
+    # (Optional) Don't bind to the host system
+    default_bind stub://0.0.0.0
+    point-c {
+        # WireGuard server config
+        wgserver server {
+            ip 192.168.45.1
+            port 51820
+            private 2Jgm2q3tFu21cO1IMyhjENqp7t5qep0++novkdKHe0k=
+            # Add peer blocks for each client
+            peer client-1 {
+                ip 192.168.45.2
+                public Tdbxgh9AHWXodT60AiwCUPDTEITyVD+ecMhp2TDY1xw=
+                shared Z9Ad3ZhTQbIUCLEKATYXS1m380vYrYFhGA75tspxsOU=
+            }
+        }
+    }
+    servers :443 {
+        listener_wrappers {
+            merge {
+                point-c client-1 443
+                # Add `point-c` for each client
+            }
+        }
+    }
+}
+
+# Rest of Caddy config
+```
+
+### Remote Listen Configuration
 
 #### Server
 
@@ -60,18 +73,18 @@ To install a module from `point-c`, you will need to build a custom Caddy binary
         wgserver server {
             ip 192.168.45.1
             port 51820
-            private {{ txt .Private }}
+            private 2Jgm2q3tFu21cO1IMyhjENqp7t5qep0++novkdKHe0k=
             peer client {
                 ip 192.168.45.2
-                public {{ txt .Public }}
-                shared {{ txt .Shared }}
+                public Tdbxgh9AHWXodT60AiwCUPDTEITyVD+ecMhp2TDY1xw=
+                shared Z9Ad3ZhTQbIUCLEKATYXS1m380vYrYFhGA75tspxsOU=
             }
         }
     }
     # Forward traffic
     point-c netops {
         forward sys:client{
-            tcp 80:80
+            tcp 443:443
         }
     }
 }
@@ -82,6 +95,101 @@ To install a module from `point-c`, you will need to build a custom Caddy binary
 ```
 
 #### Client
+
+```Caddyfile
+{
+    # (Optional) Don't bind to the host system
+    default_bind stub://0.0.0.0
+    point-c {
+        wgclient client {
+            ip 192.168.45.2
+            endpoint 127.0.0.1:51820
+            private UCoEdsc8Mw7ZY81jSAHOGIw23QxqxfN8SQ8YktOrw0I=
+            public 5GIGlLmvYnTyoQ59QIUYEo2FFUgubTibAO2qFI859hY=
+            shared Z9Ad3ZhTQbIUCLEKATYXS1m380vYrYFhGA75tspxsOU=
+        }
+    }
+    servers :443 {
+        listener_wrappers {
+            merge {
+                point-c client 443
+            }
+        }
+    }
+}
+
+# Rest of Caddy config
+```
+
+## Modules
+
+### `merge-listener-wrapper`
+
+`caddy.ListenerWrapper` that wraps multiple TCP listeners.
+
+```Caddyfile
+{
+    servers :443 {
+        listener_wrappers {
+            merge {
+               # Listener definitions go here 
+            }
+        }
+    }
+}
+```
+
+#### Config
+
+### `point-c`
+
+Handles registered networks and network operations.
+
+#### Config
+
+### `sysnet`
+
+A `point-c` network for the host system.
+
+#### Config
+
+### `wg`
+
+A `point-c` network for WireGuard tunnels.
+
+#### Config
+
+### `listener`
+
+Allows registering a `point-c` network with `merge-listener-wrapper`.
+
+#### Config
+
+### `forward`
+
+Network operation that manages modules that move traffic from a source to a destination.
+
+#### Config
+
+### `forward-tcp`
+
+A forward submodule that forwards TCP traffic.
+
+#### Config
+
+### `stub-listener`
+
+Prevent caddy from listening on the host system.
+
+#### Config
+
+### `rand`
+
+A `caddyhttp.MiddlewareHandler` that returns random data.
+
+#### Config
+
+## Full Configuration
 
 ### Caddyfile
 
@@ -107,10 +215,6 @@ To install a module from `point-c`, you will need to build a custom Caddy binary
          }
       }
    }
-}
-
-:80 {
-   log
 }
 ```
 
