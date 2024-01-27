@@ -494,8 +494,6 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pkg/profile v1.2.1/go.mod h1:hJw3o1OdXxsrSjjVksARp5W95eeEaEfptyVZyv6JUPA=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/point-c/channel-listener v0.1.0 h1:3uAw1tKgSDQn08h0+r87scNWBjsxy1CfSmIJGx5Cm3k=
-github.com/point-c/channel-listener v0.1.0/go.mod h1:Lo+oilIEnmcUqjqx3lAuadwcrrBLEYOYzHKVc89Q44M=
 github.com/point-c/simplewg v0.1.0 h1:+kl1GbE/hPjti6JJjX6tFQL1+UOZqcGbWYTjeMAPNX0=
 github.com/point-c/simplewg v0.1.0/go.mod h1:A4TMRbudsqFQmnMR83KgkQvF+4GKbGtJwx/6DjcTB60=
 github.com/point-c/wg v0.2.0 h1:gU3dyLgUBYktUOe3VmUq5xnVyAanhc+bjN/jDNucd+8=
