@@ -2,9 +2,7 @@
 
 [![Go Reference](https://img.shields.io/badge/godoc-reference-%23007d9c.svg)](https://point-c.github.io/caddy)
 
-point-c is a collection of Caddy modules for handling traffic between host systems and WireGuard tunnels.
-
-`point-c` is a collection of Caddy modules designed to handle network traffic between host systems and WireGuard tunnels. This library is for users looking to integrate robust network handling into their Caddy server configurations, particularly in VPN scenarios.
+`point-c` is a collection of Caddy modules designed to handle network traffic between host systems and WireGuard tunnels. This library is for users looking to integrate network handling into their Caddy server configurations, particularly in VPN scenarios.
 
 ## Features
 
@@ -41,22 +39,22 @@ To install the modules from `point-c`, you will need to build a custom Caddy bin
     default_bind stub://0.0.0.0
     point-c {
         # WireGuard server config
-        wgserver server {
-            ip 192.168.45.1
-            port 51820
-            private 2Jgm2q3tFu21cO1IMyhjENqp7t5qep0++novkdKHe0k=
+        wgserver <server hostname> {
+            ip <server address in private network>
+            port <server listening port>
+            private <server private key>
             # Add peer blocks for each client
-            peer client-1 {
-                ip 192.168.45.2
-                public Tdbxgh9AHWXodT60AiwCUPDTEITyVD+ecMhp2TDY1xw=
-                shared Z9Ad3ZhTQbIUCLEKATYXS1m380vYrYFhGA75tspxsOU=
+            peer <client hostname> {
+                ip <client address in private network>
+                public <client public key>
+                shared <shared key>
             }
         }
     }
     servers :443 {
         listener_wrappers {
             merge {
-                point-c client-1 443
+                point-c <client hostname> 443
                 # Add `point-c` for each client
             }
         }
@@ -78,20 +76,20 @@ To install the modules from `point-c`, you will need to build a custom Caddy bin
         # Default network
         system sys 0.0.0.0
         # WireGuard server config
-        wgserver server {
-            ip 192.168.45.1
-            port 51820
-            private 2Jgm2q3tFu21cO1IMyhjENqp7t5qep0++novkdKHe0k=
-            peer client {
-                ip 192.168.45.2
-                public Tdbxgh9AHWXodT60AiwCUPDTEITyVD+ecMhp2TDY1xw=
-                shared Z9Ad3ZhTQbIUCLEKATYXS1m380vYrYFhGA75tspxsOU=
+        wgserver <server hostname> {
+            ip <server address in private network>
+            port <server listening port>
+            private <server private key>
+            peer <client hostname> {
+                ip <client address in private network>
+                public <client public key>
+                shared <shared key>
             }
         }
     }
     # Forward traffic
     point-c netops {
-        forward sys:client{
+        forward sys:<client hostname> {
             tcp 443:443
         }
     }
@@ -109,18 +107,18 @@ To install the modules from `point-c`, you will need to build a custom Caddy bin
     # (Optional) Don't bind to the host system
     default_bind stub://0.0.0.0
     point-c {
-        wgclient client {
-            ip 192.168.45.2
-            endpoint 127.0.0.1:51820
-            private UCoEdsc8Mw7ZY81jSAHOGIw23QxqxfN8SQ8YktOrw0I=
-            public 5GIGlLmvYnTyoQ59QIUYEo2FFUgubTibAO2qFI859hY=
-            shared Z9Ad3ZhTQbIUCLEKATYXS1m380vYrYFhGA75tspxsOU=
+        wgclient <client hostname> {
+            ip <client address in private network>
+            endpoint <server ip/hostname>:<server port>
+            private <client private key>
+            public <server public key>
+            shared <shared key>
         }
     }
     servers :443 {
         listener_wrappers {
             merge {
-                point-c client 443
+                point-c <client hostname> 443
             }
         }
     }
@@ -691,3 +689,5 @@ The package includes tests that demonstrate its functionality. Use Go's testing 
 ```bash
 go test ./...
 ```
+
+More tests are also available [here](https://github.com/point-c/integration).
