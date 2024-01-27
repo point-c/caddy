@@ -1,4 +1,5 @@
-package caddy_wg
+// Package wg is a point-c network for a WireGuard tunnel.
+package wg
 
 import (
 	"github.com/caddyserver/caddy/v2"

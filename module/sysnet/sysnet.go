@@ -1,3 +1,4 @@
+// Package sysnet is a point-c network for the host network.
 package sysnet
 
 import (

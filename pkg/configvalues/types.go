@@ -1,3 +1,4 @@
+// Package configvalues contains types to help with configuring point-c.
 package configvalues
 
 import (

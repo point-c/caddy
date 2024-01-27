@@ -1,4 +1,4 @@
-package caddy_wg
+package wg
 
 import (
 	"context"

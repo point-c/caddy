@@ -1,6 +1,6 @@
 # point-c
 
-[![Go Reference](https://img.shields.io/badge/godoc-reference-%23007d9c.svg)](https://point-c.github.io/caddy)
+[![Go Reference](https://img.shields.io/badge/godoc-reference-%23007d9c.svg)](https://godocs.io/github.com/point-c/caddy@v0.1.0)
 
 `point-c` is a collection of Caddy modules designed to handle network traffic between host systems and WireGuard tunnels. This library is for users looking to integrate network handling into their Caddy server configurations, particularly in VPN scenarios.
 

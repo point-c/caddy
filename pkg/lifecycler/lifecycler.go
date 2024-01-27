@@ -1,3 +1,4 @@
+// Package lifecycler helps Caddy modules manage the life cycle of submodules.
 package lifecycler
 
 import (

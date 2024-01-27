@@ -1,3 +1,4 @@
+// Package caddyreg contains basic helpers to assist with creating Caddy modules.
 package caddyreg
 
 import (

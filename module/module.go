@@ -1,3 +1,4 @@
+// Package module allows importing all modules at once.
 package module
 
 import (

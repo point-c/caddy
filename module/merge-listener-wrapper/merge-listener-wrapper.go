@@ -1,3 +1,4 @@
+// Package merge_listener_wrapper allows Caddy to listen on multiple listeners.
 package merge_listener_wrapper
 
 import (

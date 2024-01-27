@@ -1,3 +1,4 @@
+// Package forward manages network forwarders.
 package forward
 
 import (

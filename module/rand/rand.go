@@ -1,3 +1,4 @@
+// Package rand contains a Caddy handler that allows random data to be returned.
 package rand
 
 import (

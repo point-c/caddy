@@ -1,3 +1,4 @@
+// Package stub_listener is a Caddy network that prevents caddy from listening on the host.
 package stub_listener
 
 import (

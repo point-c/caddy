@@ -1,3 +1,4 @@
+// Package listener allows Caddy to listen on arbitrary networks.
 package listener
 
 import (

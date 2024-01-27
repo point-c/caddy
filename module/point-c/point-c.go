@@ -1,3 +1,4 @@
+// Package point_c allows Caddy to manage networks.
 package point_c
 
 import (
