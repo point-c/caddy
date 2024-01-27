@@ -15,16 +15,19 @@
 To install the modules from `point-c`, you will need to build a custom Caddy binary that includes that module. This can be achieved using the `xcaddy` utility:
 
 1. **Install xcaddy**:
+
    ```sh
    go install github.com/caddyserver/xcaddy/cmd/xcaddy@latest
    ```
 
 2. **Build Caddy with all modules**:
+
    ```sh
    xcaddy build --with github.com/point-c/caddy/module@latest
    ```
 
 3. **Run Your Custom Caddy Build**:
+
    ```sh
    ./caddy run
    ```
@@ -133,9 +136,7 @@ To install the modules from `point-c`, you will need to build a custom Caddy bin
 
 The merge-listener-wrapper module acts as a wrapper for TCP listeners within the Caddy server. This module enables the bundling of multiple listeners into a single `net.Listener`. It's useful for allowing different networks to combine traffic.
 
-#### Config
-
-##### Caddyfile
+#### Caddyfile
 
 ```Caddyfile
 {
@@ -149,7 +150,7 @@ The merge-listener-wrapper module acts as a wrapper for TCP listeners within the
 }
 ```
 
-##### JSON
+#### JSON
 
 ```json
 {
@@ -180,20 +181,18 @@ The merge-listener-wrapper module acts as a wrapper for TCP listeners within the
 
 The centerpiece of this library, `point-c`, is designed to handle and manage registered networks and their associated operations within Caddy. This module serves as the backbone for integrating Caddy with various network setups, including both system networks and WireGuard configurations. It's essential for users looking to leverage Caddy in network-intensive applications or in scenarios requiring network control.
 
-#### Config
-
-##### Caddyfile
+#### Caddyfile
 
 ```Caddyfile
 {
-	point-c {
-	}
-	point-c netops {
-	}
+   point-c {
+   }
+   point-c netops {
+   }
 }
 ```
 
-##### JSON
+#### JSON
 
 ```json
 {
@@ -210,17 +209,17 @@ The centerpiece of this library, `point-c`, is designed to handle and manage reg
 
 `sysnet` is a dedicated point-c network module for the host system. It provides a streamlined way to integrate the host's network settings into the point-c ecosystem. This module is for scenarios where the host system's network needs to be used in a `point-c` network operation.
 
-#### Config
+#### Caddyfile
 
 ```Caddyfile
 {
-	point-c {
-		system <hostname> <ip address>
-	}
+   point-c {
+      system <hostname> <ip address>
+   }
 }
 ```
 
-##### JSON
+#### JSON
 
 ```json
 {
@@ -242,33 +241,33 @@ The centerpiece of this library, `point-c`, is designed to handle and manage reg
 
 The `wg` module enables registration of WireGuard tunnels, allowing integration of WireGuard-based VPN configurations with Caddy. The module is for users looking to combine WireGuard Caddy's web-serving functionality.
 
-#### Config
+#### Caddyfile
 
 ```Caddyfile
 {
-	point-c {
-		wgclient <hostname> {
-			ip <address on the virtual network>
-			endpoint <server address>
-			private <client private key>
-			public <server public key>
-			shared <shared key>
-		}
-		wgserver <hostname> {
-			ip <address on the virtual network>
-			port <server listen port>
-			private <server private key>
-			peer <hostname> {
-				ip <address on the virtual network>
-				public <client public key>
-				shared <shared key>
-			}
-		}
-	}
+   point-c {
+      wgclient <hostname> {
+         ip <address on the virtual network>
+         endpoint <server address>
+         private <client private key>
+         public <server public key>
+         shared <shared key>
+      }
+      wgserver <hostname> {
+         ip <address on the virtual network>
+         port <server listen port>
+         private <server private key>
+         peer <hostname> {
+            ip <address on the virtual network>
+            public <client public key>
+            shared <shared key>
+         }
+      }
+   }
 }
 ```
 
-##### JSON
+#### JSON
 
 ```json
 {
@@ -309,9 +308,7 @@ The `wg` module enables registration of WireGuard tunnels, allowing integration 
 
 The `listener` module for `point-c` allows for the use of registered networks with the `merge-listener-wrapper`. This module allows using networks as Caddy listeners.
 
-#### Config
-
-##### Caddyfile
+#### Caddyfile
 
 ```Caddyfile
 {
@@ -326,7 +323,7 @@ The `listener` module for `point-c` allows for the use of registered networks wi
 }
 ```
 
-##### JSON
+#### JSON
 
 ```json
 {
@@ -363,20 +360,18 @@ The `listener` module for `point-c` allows for the use of registered networks wi
 
 The `forward` module specializes in directing traffic from a source to a destination. It allows multiple port forwards to be made for a `src host:dst host` pair.
 
-#### Config
-
-##### Caddyfile
+#### Caddyfile
 
 ```Caddyfile
 {
-	point-c netops {
-		forward <src host>:<dst host> {
-		}
-	}
+   point-c netops {
+      forward <src host>:<dst host> {
+      }
+   }
 }
 ```
 
-##### JSON
+#### JSON
 
 ```json
 {
@@ -398,21 +393,19 @@ The `forward` module specializes in directing traffic from a source to a destina
 
 As a submodule of `forward`, `forward-tcp` focuses on forwarding TCP traffic. It allows specifying a specific buffer size in bytes. The default is `4096`.
 
-#### Config
-
-##### Caddyfile
+#### Caddyfile
 
 ```Caddyfile
 {
-	point-c netops {
-		forward <src host>:<dst host> {
-			tcp <src port>:<dst port> [buffer size in bytes]
-		}
-	}
+   point-c netops {
+      forward <src host>:<dst host> {
+         tcp <src port>:<dst port> [buffer size in bytes]
+      }
+   }
 }
 ```
 
-##### JSON
+#### JSON
 
 ```json
 {
@@ -440,9 +433,7 @@ As a submodule of `forward`, `forward-tcp` focuses on forwarding TCP traffic. It
 
 `stub-listener` allows binding to nothing, preventing Caddy from listening on the host system. This is useful for isolating Caddy from the host environment, such as when it is unable to open ports on the host system.
 
-#### Config
-
-##### Caddyfile
+#### Caddyfile
 
 ```Caddyfile
 {
@@ -450,7 +441,7 @@ As a submodule of `forward`, `forward-tcp` focuses on forwarding TCP traffic. It
 }
 ```
 
-##### JSON
+#### JSON
 
 ```json
 
@@ -474,12 +465,11 @@ As a submodule of `forward`, `forward-tcp` focuses on forwarding TCP traffic. It
 `rand` is a `caddyhttp.MiddlewareHandler` that returns random data, useful for testing.
 
 Accepts the following headers:
+
 - `Rand-Seed`: The seed for the random data generator. If not specified, the current Unix microsecond timestamp is used.
 - `Rand-Size`: The size of the random data in bytes. If not specified or set to a negative value, the module will stream random data indefinitely.
 
-#### Config
-
-##### Caddyfile
+#### Caddyfile
 
 ```Caddyfile
 <site block> {
@@ -489,7 +479,7 @@ Accepts the following headers:
 }
 ```
 
-##### JSON Configuration
+#### JSON Configuration
 
 ```json
 {
@@ -522,50 +512,50 @@ For advanced users, point-c offers extended configuration options to tailor the 
 
 ```Caddyfile
 {
-	default_bind stub://0.0.0.0
-	point-c {
-		system sys 0.0.0.0
-		wgclient client {
-			ip 192.168.45.2
-			endpoint 127.0.0.1:51820
-			private UCoEdsc8Mw7ZY81jSAHOGIw23QxqxfN8SQ8YktOrw0I=
-			public 5GIGlLmvYnTyoQ59QIUYEo2FFUgubTibAO2qFI859hY=
-			shared Z9Ad3ZhTQbIUCLEKATYXS1m380vYrYFhGA75tspxsOU=
-		}
-		wgserver server {
-			ip 192.168.45.1
-			port 51820
-			private 2Jgm2q3tFu21cO1IMyhjENqp7t5qep0++novkdKHe0k=
-			peer client-1 {
-				ip 192.168.45.3
-				public Tdbxgh9AHWXodT60AiwCUPDTEITyVD+ecMhp2TDY1xw=
-				shared Z9Ad3ZhTQbIUCLEKATYXS1m380vYrYFhGA75tspxsOU=
-			}
-		}
-	}
-	point-c netops {
-		forward server:client-1 {
-			tcp 443:443
-		}
-		forward sys:server {
-			tcp 443:443 8192
-		}
-	}
-	servers :443 {
-		listener_wrappers {
-			merge {
-				point-c server 443
-				point-c client 443
-			}
-			tls
-		}
-	}
+   default_bind stub://0.0.0.0
+   point-c {
+      system sys 0.0.0.0
+      wgclient client {
+         ip 192.168.45.2
+         endpoint 127.0.0.1:51820
+         private UCoEdsc8Mw7ZY81jSAHOGIw23QxqxfN8SQ8YktOrw0I=
+         public 5GIGlLmvYnTyoQ59QIUYEo2FFUgubTibAO2qFI859hY=
+         shared Z9Ad3ZhTQbIUCLEKATYXS1m380vYrYFhGA75tspxsOU=
+      }
+      wgserver server {
+         ip 192.168.45.1
+         port 51820
+         private 2Jgm2q3tFu21cO1IMyhjENqp7t5qep0++novkdKHe0k=
+         peer client-1 {
+            ip 192.168.45.3
+            public Tdbxgh9AHWXodT60AiwCUPDTEITyVD+ecMhp2TDY1xw=
+            shared Z9Ad3ZhTQbIUCLEKATYXS1m380vYrYFhGA75tspxsOU=
+         }
+      }
+   }
+   point-c netops {
+      forward server:client-1 {
+         tcp 443:443
+      }
+      forward sys:server {
+         tcp 443:443 8192
+      }
+   }
+   servers :443 {
+      listener_wrappers {
+         merge {
+            point-c server 443
+            point-c client 443
+         }
+         tls
+      }
+   }
 }
 
 :443 {
-	route {
-		rand
-	}
+   route {
+      rand
+   }
 }
 ```
 
