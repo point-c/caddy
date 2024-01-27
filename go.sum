@@ -626,8 +626,6 @@ github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcU
 github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXlSw2iwfAo=
 github.com/tailscale/tscert v0.0.0-20230806124524-28a91b69a046 h1:8rUlviSVOEe7TMk7W0gIPrW8MqEzYfZHpsNWSf8s2vg=
 github.com/tailscale/tscert v0.0.0-20230806124524-28a91b69a046/go.mod h1:kNGUQ3VESx3VZwRwA9MSCUegIl6+saPL8Noq82ozCaU=
-github.com/therve/go/gopages v0.0.0-20230125110906-989785bb2fa2 h1:x2yEkk4IZ4rZS9C86JCQ5m5zQDW9JJkQkGZ5mrzud80=
-github.com/therve/go/gopages v0.0.0-20230125110906-989785bb2fa2/go.mod h1:e2jbQbt2DZGWAlN8eotfmg/0sxsG0FwpMkXGG6bLRZ8=
 github.com/tmc/grpc-websocket-proxy v0.0.0-20170815181823-89b8d40f7ca8/go.mod h1:ncp9v5uamzpCO7NfCPTXjqaC+bZgJeR0sMTm6dMHP7U=
 github.com/ugorji/go/codec v0.0.0-20181204163529-d75b2dcb6bc8/go.mod h1:VFNgLljTbGfSG7qAOspJ7OScBnGdDN/yBr0sguwnwf0=
 github.com/urfave/cli v1.20.0/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
