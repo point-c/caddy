@@ -4,11 +4,53 @@
 
 `point-c` is a collection of Caddy modules designed to handle network traffic between host systems and WireGuard tunnels. This library is for users looking to integrate network handling into their Caddy server configurations, particularly in VPN scenarios.
 
+- [point-c](#point-c)
+   * [Features](#features)
+   * [Installation](#installation)
+   * [Quickstart](#quickstart)
+      + [Caddy as Server Configuration](#caddy-as-server-configuration)
+      + [Remote Listen Configuration](#remote-listen-configuration)
+         - [Server](#server)
+         - [Client](#client)
+   * [Modules](#modules)
+      + [`merge-listener-wrapper`](#-merge-listener-wrapper-)
+         - [Caddyfile](#caddyfile)
+         - [JSON](#json)
+      + [`point-c`](#-point-c-)
+         - [Caddyfile](#caddyfile-1)
+         - [JSON](#json-1)
+      + [`sysnet`](#-sysnet-)
+         - [Caddyfile](#caddyfile-2)
+         - [JSON](#json-2)
+      + [`wg`](#-wg-)
+         - [Caddyfile](#caddyfile-3)
+         - [JSON](#json-3)
+      + [`listener`](#-listener-)
+         - [Caddyfile](#caddyfile-4)
+         - [JSON](#json-4)
+      + [`forward`](#-forward-)
+         - [Caddyfile](#caddyfile-5)
+         - [JSON](#json-5)
+      + [`forward-tcp`](#-forward-tcp-)
+         - [Caddyfile](#caddyfile-6)
+         - [JSON](#json-6)
+      + [`stub-listener`](#-stub-listener-)
+         - [Caddyfile](#caddyfile-7)
+         - [JSON](#json-7)
+      + [`rand`](#-rand-)
+         - [Caddyfile](#caddyfile-8)
+         - [JSON Configuration](#json-configuration)
+   * [Full Configuration](#full-configuration)
+      + [Caddyfile](#caddyfile-9)
+      + [JSON Configuration](#json-configuration-1)
+   * [Testing](#testing)
+
 ## Features
 
 - Easy integration with Caddy and WireGuard.
 - Customizable modules for different network operations.
 - Streamlined handling of TCP traffic and listener wrapping.
+- [Full test of these modules using Docker.](https://github.com/point-c/integration)
 
 ## Installation
 
