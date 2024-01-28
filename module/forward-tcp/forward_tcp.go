@@ -206,7 +206,7 @@ func (cp *ConnPair) DialTunnel(n point_c.Net, dstPort uint16) bool {
 	// Dial in the tunnel
 	rc, err := d.Dial(cp.Ctx, &net.TCPAddr{IP: n.LocalAddr(), Port: int(dstPort)})
 	if err != nil {
-		cp.Logger.Error("failed to dial remote in tunnel", "local", remote, "remote", n.LocalAddr(), "port", dstPort)
+		cp.Logger.Error("failed to dial", "remote", remote, "local", n.LocalAddr(), "port", dstPort, "err", err)
 		// Don't leak context, close remote connection
 		cp.Cancel()
 		// Remote might be temporarily down, don't kill everything because of one problem

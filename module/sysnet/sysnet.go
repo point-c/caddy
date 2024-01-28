@@ -113,8 +113,8 @@ type SysDialer struct {
 }
 
 // Dialer returns a [SysDialer] ready to dial on the given address and port.
-func (s *Sysnet) Dialer(ip net.IP, port uint16) point_c.Dialer {
-	return &SysDialer{ctx: s.ctx, local: ip, port: port}
+func (s *Sysnet) Dialer(_ net.IP, port uint16) point_c.Dialer {
+	return &SysDialer{ctx: s.ctx, local: s.Addr.Value(), port: port}
 }
 
 // Dial dials the given address using TCP.
