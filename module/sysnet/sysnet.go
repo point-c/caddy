@@ -26,8 +26,9 @@ func init() { caddyreg.R[*Sysnet]() }
 
 // Sysnet is a point-c network that can dial and listen on the host system.
 type Sysnet struct {
-	Hostname configvalues.Hostname `json:"hostname"`
-	Addr     configvalues.IP       `json:"addr"`
+	Hostname configvalues.Hostname   `json:"hostname"`
+	DialAddr configvalues.ResolvedIP `json:"dial-addr"`
+	Local    configvalues.ResolvedIP `json:"local"`
 	ctx      context.Context
 	cancel   context.CancelFunc
 }
@@ -42,7 +43,7 @@ func (s *Sysnet) Provision(c caddy.Context) error {
 func (s *Sysnet) Cleanup() error { s.cancel(); return nil }
 
 // LocalAddr returns the address this module is configured with.
-func (s *Sysnet) LocalAddr() net.IP { return s.Addr.Value() }
+func (s *Sysnet) LocalAddr() net.IP { return s.Local.Value() }
 
 // Start implements [Network]. Is registers this module with the given hostname.
 func (s *Sysnet) Start(fn point_c.RegisterFunc) error { return fn(s.Hostname.Value(), s) }
@@ -53,20 +54,35 @@ func (s *Sysnet) CaddyModule() caddy.ModuleInfo {
 }
 
 // UnmarshalCaddyfile implements [caddyfule.Unmarshaler].
-func (s *Sysnet) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
-	for d.Next() {
-		for v := d.Val(); v == "" || v == "system"; v = d.Val() {
-			if !d.NextArg() {
-				return d.ArgErr()
-			}
-		}
-		err := s.Hostname.UnmarshalCaddyfile(d)
-		if !d.NextArg() {
-			return err
-		}
-		return errors.Join(err, s.Addr.UnmarshalCaddyfile(d))
+func (s *Sysnet) UnmarshalCaddyfile(d *caddyfile.Dispenser) (err error) {
+	unmarshalers := []func(*caddyfile.Dispenser) error{
+		s.Hostname.UnmarshalCaddyfile,
+		s.DialAddr.UnmarshalCaddyfile,
+		s.Local.UnmarshalCaddyfile,
 	}
-	return nil
+
+	for d.Next() {
+		for len(unmarshalers) > 0 && d.NextArg() {
+			if v := d.Val(); v == "" || v == "system" {
+				continue
+			} else if err := unmarshalers[0](d); err != nil {
+				return err
+			}
+			unmarshalers = unmarshalers[1:]
+		}
+	}
+
+	for i := range unmarshalers {
+		switch i {
+		case 0:
+			err = errors.Join(err, errors.New("local address not set"))
+		case 1:
+			err = errors.Join(err, errors.New("dial address not set"))
+		case 2:
+			err = errors.Join(err, errors.New("hostname not set"))
+		}
+	}
+	return
 }
 
 // Listen listens on the given address using TCP.
@@ -114,7 +130,7 @@ type SysDialer struct {
 
 // Dialer returns a [SysDialer] ready to dial on the given address and port.
 func (s *Sysnet) Dialer(_ net.IP, port uint16) point_c.Dialer {
-	return &SysDialer{ctx: s.ctx, local: s.Addr.Value(), port: port}
+	return &SysDialer{ctx: s.ctx, local: s.DialAddr.Value(), port: port}
 }
 
 // Dial dials the given address using TCP.

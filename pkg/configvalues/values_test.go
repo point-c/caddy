@@ -2,7 +2,9 @@ package configvalues_test
 
 import (
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/point-c/caddy/pkg/configvalues"
+	"github.com/point-c/wg/pkg/ipcheck"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/constraints"
 	"net"
@@ -187,4 +189,22 @@ func Test_Key_ValueResetUnmarshalText(t *testing.T) {
 	v := k.Value()
 	require.Error(t, k.UnmarshalText(nil))
 	require.NotEqual(t, v, k.Value())
+}
+
+func Test_ValueResolvedIP(t *testing.T) {
+	var v configvalues.ValueResolvedIP
+	t.Run("resolve", func(t *testing.T) {
+		defer v.Reset()
+		require.NoError(t, v.UnmarshalText([]byte("localhost")))
+		require.True(t, ipcheck.IsLoopback(v.Value()))
+	})
+	t.Run("resolve error", func(t *testing.T) {
+		defer v.Reset()
+		host := uuid.NewString()
+		err := v.UnmarshalText([]byte(host))
+		var e *net.DNSError
+		require.ErrorAs(t, err, &e)
+		require.Equal(t, host, e.Name)
+		require.True(t, e.IsNotFound)
+	})
 }

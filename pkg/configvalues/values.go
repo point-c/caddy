@@ -120,6 +120,27 @@ func (ip *ValueIP) Value() net.IP {
 // Reset sets this value to nil.
 func (ip *ValueIP) Reset() { *ip = nil }
 
+// ValueResolvedIP handles resolving and unmarshalling [net.IP].
+type ValueResolvedIP net.IP
+
+// UnmarshalText implements the resolving of a hostname into an IP address.
+// It delegates to the [encoding.TextUnmarshaler] implementation of [net.IP].
+// If the host has multiple IP addresses, the first one is used.
+func (ip *ValueResolvedIP) UnmarshalText(text []byte) error {
+	ips, err := net.LookupIP(string(text))
+	if err != nil || len(ips) == 0 {
+		return errors.Join(err, &net.DNSError{Err: "no ip for host found", Name: string(text), IsNotFound: true})
+	}
+	*ip = ValueResolvedIP(ips[0])
+	return nil
+}
+
+// Value returns the underlying net.IP that was resolved.
+func (ip *ValueResolvedIP) Value() net.IP { return net.IP(*ip) }
+
+// Reset sets this value to nil.
+func (ip *ValueResolvedIP) Reset() { *ip = nil }
+
 // ValuePair represents a structured combination of `<value>:<value>` pairs.
 type ValuePair[V any, T any, TP valueConstraint[V, T]] struct {
 	left, right CaddyTextUnmarshaler[V, T, TP]

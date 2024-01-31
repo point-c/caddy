@@ -7,6 +7,7 @@ import (
 	"github.com/caddyserver/caddy/v2/caddyconfig"
 	"github.com/caddyserver/caddy/v2/caddyconfig/caddyfile"
 	"github.com/point-c/caddy/module/point-c"
+	"github.com/point-c/wg/pkg/ipcheck"
 	"github.com/stretchr/testify/require"
 	"io"
 	"math"
@@ -22,9 +23,10 @@ func TestSysnet(t *testing.T) {
 	a, err := ctx.LoadModuleByID("point-c", caddyconfig.JSON(map[string]any{
 		"networks": []any{
 			map[string]any{
-				"hostname": "test",
-				"addr":     "127.0.0.1",
-				"type":     "system",
+				"hostname":  "test",
+				"dial-addr": "127.0.0.1",
+				"local":     "127.0.0.1",
+				"type":      "system",
 			},
 		},
 	}, nil))
@@ -116,20 +118,60 @@ func TestCaddyListen(t *testing.T) {
 
 func TestSysnet_UnmarshalCaddyfile(t *testing.T) {
 	t.Run("nothing", func(t *testing.T) {
-		require.NoError(t, new(Sysnet).UnmarshalCaddyfile(caddyfile.NewTestDispenser("")))
+		err := new(Sysnet).UnmarshalCaddyfile(caddyfile.NewTestDispenser(""))
+		require.ErrorContains(t, err, "local address not set")
+		require.ErrorContains(t, err, "dial address not set")
+		require.ErrorContains(t, err, "hostname not set")
 	})
 	t.Run("no hostname", func(t *testing.T) {
-		require.Error(t, new(Sysnet).UnmarshalCaddyfile(caddyfile.NewTestDispenser("system")))
+		err := new(Sysnet).UnmarshalCaddyfile(caddyfile.NewTestDispenser("system"))
+		require.ErrorContains(t, err, "local address not set")
+		require.ErrorContains(t, err, "dial address not set")
+		require.ErrorContains(t, err, "hostname not set")
 	})
-	t.Run("no addr", func(t *testing.T) {
-		var sn Sysnet
-		require.NoError(t, sn.UnmarshalCaddyfile(caddyfile.NewTestDispenser("system test")))
-		require.Equal(t, "test", sn.Hostname.Value())
+	t.Run("no dial addr", func(t *testing.T) {
+		err := new(Sysnet).UnmarshalCaddyfile(caddyfile.NewTestDispenser("system test"))
+		require.ErrorContains(t, err, "local address not set")
+		require.ErrorContains(t, err, "dial address not set")
+	})
+	t.Run("no local addr", func(t *testing.T) {
+		err := new(Sysnet).UnmarshalCaddyfile(caddyfile.NewTestDispenser("system test 1.2.3.4"))
+		require.ErrorContains(t, err, "local address not set")
 	})
 	t.Run("full", func(t *testing.T) {
 		var sn Sysnet
-		require.NoError(t, sn.UnmarshalCaddyfile(caddyfile.NewTestDispenser("system test 1.2.3.4")))
+		require.NoError(t, sn.UnmarshalCaddyfile(caddyfile.NewTestDispenser("system test 1.2.3.4 4.3.2.1")))
 		require.Equal(t, "test", sn.Hostname.Value())
-		require.Equal(t, net.IPv4(1, 2, 3, 4), sn.Addr.Value())
+		require.Equal(t, net.IPv4(1, 2, 3, 4), sn.DialAddr.Value())
+		require.Equal(t, net.IPv4(4, 3, 2, 1), sn.Local.Value())
+	})
+	t.Run("resolve dial address", func(t *testing.T) {
+		var sn Sysnet
+		require.NoError(t, sn.UnmarshalCaddyfile(caddyfile.NewTestDispenser("system test localhost 4.3.2.1")))
+		require.Equal(t, "test", sn.Hostname.Value())
+		require.True(t, ipcheck.IsLoopback(sn.DialAddr.Value()))
+		require.Equal(t, net.IPv4(4, 3, 2, 1), sn.Local.Value())
+	})
+	t.Run("resolve local address", func(t *testing.T) {
+		var sn Sysnet
+		require.NoError(t, sn.UnmarshalCaddyfile(caddyfile.NewTestDispenser("system test 1.2.3.4 localhost")))
+		require.Equal(t, "test", sn.Hostname.Value())
+		require.Equal(t, net.IPv4(1, 2, 3, 4), sn.DialAddr.Value())
+		require.True(t, ipcheck.IsLoopback(sn.Local.Value()))
+	})
+	t.Run("resolve both", func(t *testing.T) {
+		var sn Sysnet
+		require.NoError(t, sn.UnmarshalCaddyfile(caddyfile.NewTestDispenser("system test localhost localhost")))
+		require.Equal(t, "test", sn.Hostname.Value())
+		require.True(t, ipcheck.IsLoopback(sn.DialAddr.Value()))
+		require.True(t, ipcheck.IsLoopback(sn.Local.Value()))
+	})
+	t.Run("skip system", func(t *testing.T) {
+		require.NoError(t, new(Sysnet).UnmarshalCaddyfile(caddyfile.NewTestDispenser("system system test 1.2.3.4 1.2.3.4")))
+	})
+	t.Run("lookup fail", func(t *testing.T) {
+		err := new(Sysnet).UnmarshalCaddyfile(caddyfile.NewTestDispenser("system test foobar localhost"))
+		var e *net.DNSError
+		require.ErrorAs(t, err, &e)
 	})
 }

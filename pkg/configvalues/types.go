@@ -15,12 +15,17 @@ type (
 	// UDPAddr is a type alias for handling UDP network addresses.
 	// It wraps the [net.UDPAddr] type and utilizes [CaddyTextUnmarshaler] for parsing
 	// and handling UDP addresses in text form.
+	// Hosts are resolved to the IP they represent if possible.
 	UDPAddr = CaddyTextUnmarshaler[*net.UDPAddr, ValueUDPAddr, *ValueUDPAddr]
 
 	// IP is a type alias for handling IP addresses.
 	// It wraps the [net.IP] type and uses [CaddyTextUnmarshaler] for converting text-based
 	// IPv4 or IPv6 address representations into [net.IP].
 	IP = CaddyTextUnmarshaler[net.IP, ValueIP, *ValueIP]
+
+	// ResolvedIP is a type alias for handling hostnames that can be resolved into IP addresses.
+	// If wraps the [net.IP] type and resolves the IP address when [CaddyTextUnmarshaler] is unmarshalling.
+	ResolvedIP = CaddyTextUnmarshaler[net.IP, ValueResolvedIP, *ValueResolvedIP]
 
 	// Hostname represents a unique hostname string.
 	Hostname = String
