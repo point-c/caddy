@@ -12,32 +12,37 @@
       + [Remote Listen Configuration](#remote-listen-configuration)
          - [Server](#server)
          - [Client](#client)
+      + [Forward Non-HTTPS Traffic](#forward-non-https-traffic)
+         - [Caddy As Server](#caddy-as-server)
+         - Server/Client Pair
+           - [Server](#serverclient-pair---server)
+           - [Client](#serverclient-pair---client)
    * [Modules](#modules)
-      + [`merge-listener-wrapper`](#-merge-listener-wrapper-)
+      + [`merge-listener-wrapper`](#merge-listener-wrapper)
          - [Caddyfile](#caddyfile)
          - [JSON](#json)
-      + [`point-c`](#-point-c-)
+      + [`point-c`](#point-c)
          - [Caddyfile](#caddyfile-1)
          - [JSON](#json-1)
-      + [`sysnet`](#-sysnet-)
+      + [`sysnet`](#sysnet)
          - [Caddyfile](#caddyfile-2)
          - [JSON](#json-2)
-      + [`wg`](#-wg-)
+      + [`wg`](#wg)
          - [Caddyfile](#caddyfile-3)
          - [JSON](#json-3)
-      + [`listener`](#-listener-)
+      + [`listener`](#listener)
          - [Caddyfile](#caddyfile-4)
          - [JSON](#json-4)
-      + [`forward`](#-forward-)
+      + [`forward`](#forward)
          - [Caddyfile](#caddyfile-5)
          - [JSON](#json-5)
-      + [`forward-tcp`](#-forward-tcp-)
+      + [`forward-tcp`](#forward-tcp)
          - [Caddyfile](#caddyfile-6)
          - [JSON](#json-6)
-      + [`stub-listener`](#-stub-listener-)
+      + [`stub-listener`](#stub-listener)
          - [Caddyfile](#caddyfile-7)
          - [JSON](#json-7)
-      + [`rand`](#-rand-)
+      + [`rand`](#rand)
          - [Caddyfile](#caddyfile-8)
          - [JSON Configuration](#json-configuration)
    * [Full Configuration](#full-configuration)
@@ -119,7 +124,7 @@ To install the modules from `point-c`, you will need to build a custom Caddy bin
     default_bind stub://0.0.0.0
     point-c {
         # Default network
-        system sys 0.0.0.0
+        system sys 0.0.0.0 0.0.0.0
         # WireGuard server config
         wgserver <server hostname> {
             ip <server address in private network>
@@ -170,6 +175,84 @@ To install the modules from `point-c`, you will need to build a custom Caddy bin
 }
 
 # Rest of Caddy config
+```
+
+### Forward Non-HTTPS Traffic
+
+#### Caddy As Server
+
+```Caddyfile
+{
+    point-c {
+        system ssh 0.0.0.0 ssh-host
+        system sys 0.0.0.0 localhost
+        wgserver server {
+            # config...
+        }
+    }
+    point-c netops {
+        forward server:sys {
+            tcp 80:80
+        }
+        forward server:ssh {
+            tcp 22:22
+        }
+    }
+}
+```
+
+#### Server/Client Pair - Server
+
+```Caddyfile
+{
+    default_bind stub://0.0.0.0
+    point-c {
+        system sys 0.0.0.0 0.0.0.0
+        wgserver server {
+            # config...
+        }
+    }
+    point-c netops {
+        forward sys:server {
+            tcp 443:443
+            tcp 80:80
+            tcp 22:22
+        }
+    }
+}
+
+:80 {
+}
+```
+
+#### Server/Client Pair - Client
+
+```Caddyfile
+{
+   point-c {
+      system ssh 0.0.0.0 ssh-host
+      system sys 0.0.0.0 localhost
+      wgclient client {
+         # config...
+      }
+   }
+   point-c netops {
+      forward client:sys {
+         tcp 80:80
+      }
+      forward client:ssh {
+         tcp 22:22
+      }
+   }
+   servers :443 {
+      listener_wrappers {
+         merge {
+            point-c client 443
+         }
+         tls
+      }
+   }
+}
 ```
 
 ## Modules
@@ -251,12 +334,15 @@ The centerpiece of this library, `point-c`, is designed to handle and manage reg
 
 `sysnet` is a dedicated point-c network module for the host system. It provides a streamlined way to integrate the host's network settings into the point-c ecosystem. This module is for scenarios where the host system's network needs to be used in a `point-c` network operation.
 
+The dial address is the address used as the local IP when dialing. The local address is returned by the `LocalAddr` method.
+The hostname is resolved against the system to get an IP address, it is not a `point-c` network.
+
 #### Caddyfile
 
 ```Caddyfile
 {
    point-c {
-      system <hostname> <ip address>
+      system <network name> <dial ip address or hostname> <local ip address or hostname>
    }
 }
 ```
@@ -269,8 +355,9 @@ The centerpiece of this library, `point-c`, is designed to handle and manage reg
       "point-c": {
          "networks": [
             {
-               "addr": "<ip address>",
-               "hostname": "<hostname>",
+               "dial-addr": "<ip address or hostname>",
+               "local": "<ip address or hostname>",
+               "hostname": "<network name>",
                "type": "system"
             }
          ]
@@ -556,7 +643,7 @@ For advanced users, point-c offers extended configuration options to tailor the 
 {
    default_bind stub://0.0.0.0
    point-c {
-      system sys 0.0.0.0
+      system sys 0.0.0.0 0.0.0.0
       wgclient client {
          ip 192.168.45.2
          endpoint 127.0.0.1:51820
@@ -656,7 +743,8 @@ For advanced users, point-c offers extended configuration options to tailor the 
       "point-c": {
          "networks": [
             {
-               "addr": "0.0.0.0",
+               "dial-addr": "0.0.0.0",
+               "local": "0.0.0.0",
                "hostname": "sys",
                "type": "system"
             },

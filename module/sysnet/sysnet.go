@@ -54,6 +54,10 @@ func (s *Sysnet) CaddyModule() caddy.ModuleInfo {
 }
 
 // UnmarshalCaddyfile implements [caddyfule.Unmarshaler].
+//
+//	point-c {
+//	  system <network name> <dial ip or hostname> <local ip or hostname>
+//	}
 func (s *Sysnet) UnmarshalCaddyfile(d *caddyfile.Dispenser) (err error) {
 	unmarshalers := []func(*caddyfile.Dispenser) error{
 		s.Hostname.UnmarshalCaddyfile,
