@@ -178,7 +178,7 @@ func acceptTest(t testing.TB, n int, acceptor func(t testing.TB, wrapped *test_c
 		}
 	}()
 
-	for i, _ := range append(accept, nil) {
+	for i := range append(accept, nil) {
 		select {
 		case err := <-errs:
 			require.ErrorIs(t, err, net.ErrClosed)
