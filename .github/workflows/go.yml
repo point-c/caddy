@@ -1,0 +1,51 @@
+name: Go
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up
+      uses: actions/setup-go@v5
+      with:
+        go-version: stable
+
+    - name: Format
+      run: gofmt -s -w . && git diff --exit-code
+      if: matrix.os != 'windows-latest'
+
+    - name: Tidy
+      run: go mod tidy && git diff --exit-code
+
+    - name: Download
+      run: go mod download
+
+    - name: Verify
+      run: go mod verify
+
+    - name: Vet
+      run: go vet ./...
+
+    - name: Test
+      run: go test -v ./...
+
+    - name: Coverage report
+      uses: ncruces/go-coverage-report@v0.3.0
+      with:
+        chart: true
+        amend: true
+      if: |
+        github.event_name == 'push' &&
+        matrix.os == 'ubuntu-latest'
