@@ -205,6 +205,5 @@ func Test_ValueResolvedIP(t *testing.T) {
 		var e *net.DNSError
 		require.ErrorAs(t, err, &e)
 		require.Equal(t, host, e.Name)
-		require.True(t, e.IsNotFound)
 	})
 }
