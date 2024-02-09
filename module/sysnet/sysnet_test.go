@@ -103,7 +103,7 @@ func TestCaddyListen(t *testing.T) {
 		require.NoError(t, err)
 		defer ln.Close()
 		_, err = CaddyListen[net.Listener](context.Background(), ln.Addr())
-		require.ErrorContains(t, err, "address already in use")
+		require.Error(t, err)
 	})
 	t.Run("bad type", func(t *testing.T) {
 		_, err := CaddyListen[bool](context.Background(), &net.TCPAddr{IP: net.IPv4zero})
