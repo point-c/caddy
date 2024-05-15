@@ -40,7 +40,7 @@ type (
 		cancel  func()
 		wait    func()
 	}
-	BufSize = configvalues.CaddyTextUnmarshaler[uint16, configvalues.ValueUnsigned[uint16], *configvalues.ValueUnsigned[uint16]]
+	BufSize = configvalues.CaddyTextUnmarshaler[uint64, configvalues.ValueUnsigned[uint64], *configvalues.ValueUnsigned[uint64]]
 )
 
 // Provision implements [caddy.Provisioner].
