@@ -1,0 +1,21 @@
+name: Coverage
+
+on:
+  workflow_run:
+      workflows: [Tests]
+      branches: [main]
+      types:
+        - completed
+        
+jobs:
+  tests-passed:
+    runs-on: ubuntu-latest
+    if: |
+      ${{ github.event.workflow_run.conclusion == 'success' }} && 
+      github.event_name == 'push'
+    steps:
+      - name: Coverage report
+        uses: ncruces/go-coverage-report@v0.3.0
+        with:
+          chart: true
+          amend: true
