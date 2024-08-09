@@ -1,0 +1,23 @@
+name: Version Update
+
+on:
+  workflow_run:
+      workflows: [Coverage]
+      branches: [main]
+      types:
+        - completed
+        
+jobs:
+  tests-passed:
+    runs-on: ubuntu-latest
+    if: |
+      ${{ github.event.workflow_run.conclusion == 'success' }} && 
+      github.event_name == 'push'
+    steps:
+      # increment version
+      - name: Get next version
+        uses: reecetech/version-increment@2024.4.3
+        id: version
+        with:
+          scheme: semver
+          increment: patch

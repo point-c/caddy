@@ -1,4 +1,4 @@
-name: Tests
+name: Test Runner
 
 on:
   push:
@@ -40,12 +40,3 @@ jobs:
 
     - name: Test
       run: go test -v ./...
-
-    - name: Coverage report
-      uses: ncruces/go-coverage-report@v0.3.0
-      with:
-        chart: true
-        amend: true
-      if: |
-        github.event_name == 'push' &&
-        matrix.os == 'ubuntu-latest'
